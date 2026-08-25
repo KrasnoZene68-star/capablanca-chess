@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Шахи Капабланки 10×8</title>
+<style>
+:root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
+*{box-sizing:border-box}
+body{margin:0;background:#1d1d1d;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}
+.app{max-width:1180px;margin:0 auto;padding:8px}
+.brand{font-weight:800;font-size:clamp(22px,5vw,34px);margin:6px 0 10px}
+.badge{font-size:12px;color:#9fd37e;margin-left:8px}
+.layout{display:grid;grid-template-columns:260px minmax(0,1fr) 250px;gap:10px}
+.panel{background:#262626;border:1px solid #333;border-radius:12px;padding:12px}
+.controls{display:grid;gap:10px}
+select,button{width:100%;font:inherit;color:#fff;background:#303030;border:1px solid #444;border-radius:9px;padding:11px 12px}
+button{cursor:pointer}
+.statusbox{padding:12px;background:#2d2d2d;border-radius:9px;line-height:1.4}
+.legend{font-size:14px;line-height:1.45;color:#bdbdbd}
+.boardShell{position:relative;background:#111;border-radius:10px;padding:4px}
+.board{width:100%;aspect-ratio:10/8;display:grid;grid-template-columns:repeat(10,1fr);border:2px solid #111;overflow:hidden;border-radius:4px}
+.sq{position:relative;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.light{background:#e7d3ad} .dark{background:#a9825c}
+.sq.selected{box-shadow:inset 0 0 0 4px rgba(255,235,59,.92)}
+.sq.legal::after{content:"";position:absolute;width:20%;height:20%;border-radius:50%;background:rgba(30,30,30,.42);z-index:5}
+.sq.capture::after{content:"";position:absolute;inset:9%;border-radius:50%;border:4px solid rgba(30,30,30,.36);z-index:5}
+.sq.last{box-shadow:inset 0 0 0 4px rgba(166,202,82,.58)}
+.sq.check{box-shadow:inset 0 0 0 5px rgba(255,50,40,.9)}
+.coordF,.coordR{position:absolute;font-size:9px;font-weight:800;opacity:.75;z-index:6}
+.coordF{right:2px;bottom:1px} .coordR{left:2px;top:1px}
+.piece{width:86%;height:86%;display:flex;align-items:center;justify-content:center;z-index:2}
+.piece svg{width:100%;height:100%;display:block} .pawn svg{width:67%;height:67%}
+.mobileControls{display:none}
+.mobileRow{display:grid;grid-template-columns:minmax(0,1fr) 130px;gap:6px;margin-top:6px}
+.mobileInfo{display:none;margin-top:8px;background:#262626;border:1px solid #333;border-radius:10px;padding:10px;font-size:13px;color:#ccc}
+.overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.38);z-index:20}
+.overlay.show{display:flex}
+.resultCard{width:min(80%,360px);background:#1f1f1f;border:1px solid #444;border-radius:14px;padding:18px;text-align:center;box-shadow:0 12px 35px rgba(0,0,0,.5)}
+.resultIcon{font-size:48px} .resultTitle{font-size:38px;font-weight:900} .resultText{color:#d0d0d0;margin:8px 0 14px}
+.promoButtons{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.promoButtons button{font-weight:800;font-size:18px}
+.moveList{max-height:430px;overflow:auto;font-size:14px;line-height:1.6;color:#ddd}
+.moveRow{display:grid;grid-template-columns:34px 1fr 1fr;gap:6px;border-bottom:1px solid #363636;padding:2px 0}
+@media(max-width:900px){
+ .layout{grid-template-columns:1fr}
+ .left,.right{display:none}
+ .mobileControls{display:block;margin-bottom:6px}
+ .mobileControls select,.mobileControls button{padding:9px 10px;font-size:14px}
+ .mobileInfo{display:block}
+ .app{padding:6px}
+ .boardShell{padding:3px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v3.0</span></div>
+ <div class="layout">
+  <aside class="panel left">
+   <div class="controls">
+    <select id="variant">
+     <option value="classic">Класичні Капабланки</option>
+     <option value="kingKnight">Король + хід коня</option>
+     <option value="escape">Аварійний вихід через свою фігуру</option>
+     <option value="both">Обидва ваші правила</option>
+    </select>
+    <select id="mode">
+     <option value="ai">Ви (червоні) проти комп’ютера</option>
+     <option value="two">Двоє гравців</option>
+    </select>
+    <div class="statusbox"><div id="turnStatus"><b style="color:#ff6b63">Хід: червоних</b></div><div id="subStatus" style="font-size:12px;color:#999">Ви граєте за червоних</div></div>
+    <button id="newGame">↻ Нова партія</button>
+    <div class="legend"><b style="color:#ff6b63">C</b> = канцлер (тура + кінь)<br><b style="color:#ff6b63">A</b> = архієпископ (слон + кінь)<br><br>Пішаки менші. Геометрія клітин незмінна.</div>
+   </div>
+  </aside>
+
+  <main>
+   <div class="mobileControls">
+    <select id="mobileVariant">
+     <option value="classic">Класичні Капабланки</option>
+     <option value="kingKnight">Король + хід коня</option>
+     <option value="escape">Аварійний вихід через свою фігуру</option>
+     <option value="both">Обидва ваші правила</option>
+    </select>
+    <div class="mobileRow">
+     <select id="mobileMode"><option value="ai">Ви (червоні) проти комп’ютера</option><option value="two">Двоє гравців</option></select>
+     <button id="mobileNew">Нова партія</button>
+    </div>
+   </div>
+
+   <div class="boardShell">
+    <div id="board" class="board">
+<div class="sq light" data-r="0" data-c="0"><span class="coordF"></span><span class="coordR">8</span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M25 18h13v10h12V18h12v10h13V18h10v25H15V18z"/><path d="M27 43h46l-5 30H32z"/><path d="M23 74h54l6 10H17z"/></g></svg></div></div>
+<div class="sq dark" data-r="0" data-c="1"><span class="coordF"></span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M27 78h50L72 63c-5-14-5-28-20-36l4-12-20 8-10 21 12 5 10-6 4 7c-12 5-17 15-25 28z"/><circle cx="46" cy="33" r="2.6" fill="#111" stroke="none"/></g></svg></div></div>
+<div class="sq light" data-r="0" data-c="2"><span class="coordF"></span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M50 10c12 12 18 22 18 34 0 12-7 21-18 30-11-9-18-18-18-30 0-12 6-22 18-34z"/><path d="M30 72h40l8 13H22z"/></g><path d="M56 24L44 44" stroke="#fff" stroke-width="4"/><text x="50" y="62" text-anchor="middle" font-size="34" font-weight="900" fill="#fff" stroke="#0d3e18" stroke-width="1.5">A</text></svg></div></div>
+<div class="sq dark" data-r="0" data-c="3"><span class="coordF"></span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M50 16c10 10 15 18 15 27 0 10-6 17-15 24-9-7-15-14-15-24 0-9 5-17 15-27z"/><path d="M36 68h28l8 13H28z"/></g><path d="M55 25l-10 18" stroke="#fff" stroke-width="4"/></svg></div></div>
+<div class="sq light" data-r="0" data-c="4"><span class="coordF"></span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><circle cx="20" cy="24" r="6"/><circle cx="40" cy="17" r="6"/><circle cx="60" cy="17" r="6"/><circle cx="80" cy="24" r="6"/><path d="M20 30l10 35h40l10-35-20 18-10-24-10 24z"/><path d="M27 69h46l7 13H20z"/></g></svg></div></div>
+<div class="sq dark" data-r="0" data-c="5"><span class="coordF"></span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M47 10h6v12h10v6H53v10h-6V28H37v-6h10z"/><path d="M34 42h32c10 10 11 20 1 28H33c-10-8-9-18 1-28z"/><path d="M27 72h46l7 12H20z"/></g></svg></div></div>
+<div class="sq light" data-r="0" data-c="6"><span class="coordF"></span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M50 16c10 10 15 18 15 27 0 10-6 17-15 24-9-7-15-14-15-24 0-9 5-17 15-27z"/><path d="M36 68h28l8 13H28z"/></g><path d="M55 25l-10 18" stroke="#fff" stroke-width="4"/></svg></div></div>
+<div class="sq dark" data-r="0" data-c="7"><span class="coordF"></span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M20 12h14v11h12V12h12v11h12V12h14v27H16V12z"/><path d="M25 39h50l-5 36H30z"/><path d="M20 75h60l7 11H13z"/></g><text x="50" y="64" text-anchor="middle" font-size="34" font-weight="900" fill="#fff" stroke="#0d3e18" stroke-width="1.5">C</text></svg></div></div>
+<div class="sq light" data-r="0" data-c="8"><span class="coordF"></span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M27 78h50L72 63c-5-14-5-28-20-36l4-12-20 8-10 21 12 5 10-6 4 7c-12 5-17 15-25 28z"/><circle cx="46" cy="33" r="2.6" fill="#111" stroke="none"/></g></svg></div></div>
+<div class="sq dark" data-r="0" data-c="9"><span class="coordF"></span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M25 18h13v10h12V18h12v10h13V18h10v25H15V18z"/><path d="M27 43h46l-5 30H32z"/><path d="M23 74h54l6 10H17z"/></g></svg></div></div>
+<div class="sq dark" data-r="1" data-c="0"><span class="coordF"></span><span class="coordR">7</span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq light" data-r="1" data-c="1"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq dark" data-r="1" data-c="2"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq light" data-r="1" data-c="3"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq dark" data-r="1" data-c="4"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq light" data-r="1" data-c="5"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq dark" data-r="1" data-c="6"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq light" data-r="1" data-c="7"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq dark" data-r="1" data-c="8"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq light" data-r="1" data-c="9"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq light" data-r="2" data-c="0"><span class="coordF"></span><span class="coordR">6</span></div>
+<div class="sq dark" data-r="2" data-c="1"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="2" data-c="2"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="2" data-c="3"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="2" data-c="4"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="2" data-c="5"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="2" data-c="6"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="2" data-c="7"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="2" data-c="8"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="2" data-c="9"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="3" data-c="0"><span class="coordF"></span><span class="coordR">5</span></div>
+<div class="sq light" data-r="3" data-c="1"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="3" data-c="2"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="3" data-c="3"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="3" data-c="4"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="3" data-c="5"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="3" data-c="6"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="3" data-c="7"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="3" data-c="8"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="3" data-c="9"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="4" data-c="0"><span class="coordF"></span><span class="coordR">4</span></div>
+<div class="sq dark" data-r="4" data-c="1"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="4" data-c="2"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="4" data-c="3"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="4" data-c="4"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="4" data-c="5"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="4" data-c="6"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="4" data-c="7"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="4" data-c="8"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="4" data-c="9"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="5" data-c="0"><span class="coordF"></span><span class="coordR">3</span></div>
+<div class="sq light" data-r="5" data-c="1"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="5" data-c="2"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="5" data-c="3"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="5" data-c="4"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="5" data-c="5"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="5" data-c="6"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="5" data-c="7"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq dark" data-r="5" data-c="8"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="5" data-c="9"><span class="coordF"></span><span class="coordR"></span></div>
+<div class="sq light" data-r="6" data-c="0"><span class="coordF"></span><span class="coordR">2</span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq dark" data-r="6" data-c="1"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq light" data-r="6" data-c="2"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq dark" data-r="6" data-c="3"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq light" data-r="6" data-c="4"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq dark" data-r="6" data-c="5"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq light" data-r="6" data-c="6"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq dark" data-r="6" data-c="7"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq light" data-r="6" data-c="8"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq dark" data-r="6" data-c="9"><span class="coordF"></span><span class="coordR"></span><div class="piece pawn"><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><circle cx="50" cy="28" r="12"/><path d="M39 40h22l5 24H34z"/><path d="M30 68h40l6 13H24z"/></g></svg></div></div>
+<div class="sq dark" data-r="7" data-c="0"><span class="coordF">a</span><span class="coordR">1</span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><path d="M25 18h13v10h12V18h12v10h13V18h10v25H15V18z"/><path d="M27 43h46l-5 30H32z"/><path d="M23 74h54l6 10H17z"/></g></svg></div></div>
+<div class="sq light" data-r="7" data-c="1"><span class="coordF">b</span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><path d="M27 78h50L72 63c-5-14-5-28-20-36l4-12-20 8-10 21 12 5 10-6 4 7c-12 5-17 15-25 28z"/><circle cx="46" cy="33" r="2.6" fill="#111" stroke="none"/></g></svg></div></div>
+<div class="sq dark" data-r="7" data-c="2"><span class="coordF">c</span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><path d="M50 10c12 12 18 22 18 34 0 12-7 21-18 30-11-9-18-18-18-30 0-12 6-22 18-34z"/><path d="M30 72h40l8 13H22z"/></g><path d="M56 24L44 44" stroke="#fff" stroke-width="4"/><text x="50" y="62" text-anchor="middle" font-size="34" font-weight="900" fill="#fff" stroke="#6f0d09" stroke-width="1.5">A</text></svg></div></div>
+<div class="sq light" data-r="7" data-c="3"><span class="coordF">d</span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><path d="M50 16c10 10 15 18 15 27 0 10-6 17-15 24-9-7-15-14-15-24 0-9 5-17 15-27z"/><path d="M36 68h28l8 13H28z"/></g><path d="M55 25l-10 18" stroke="#fff" stroke-width="4"/></svg></div></div>
+<div class="sq dark" data-r="7" data-c="4"><span class="coordF">e</span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><circle cx="20" cy="24" r="6"/><circle cx="40" cy="17" r="6"/><circle cx="60" cy="17" r="6"/><circle cx="80" cy="24" r="6"/><path d="M20 30l10 35h40l10-35-20 18-10-24-10 24z"/><path d="M27 69h46l7 13H20z"/></g></svg></div></div>
+<div class="sq light" data-r="7" data-c="5"><span class="coordF">f</span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><path d="M47 10h6v12h10v6H53v10h-6V28H37v-6h10z"/><path d="M34 42h32c10 10 11 20 1 28H33c-10-8-9-18 1-28z"/><path d="M27 72h46l7 12H20z"/></g></svg></div></div>
+<div class="sq dark" data-r="7" data-c="6"><span class="coordF">g</span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><path d="M50 16c10 10 15 18 15 27 0 10-6 17-15 24-9-7-15-14-15-24 0-9 5-17 15-27z"/><path d="M36 68h28l8 13H28z"/></g><path d="M55 25l-10 18" stroke="#fff" stroke-width="4"/></svg></div></div>
+<div class="sq light" data-r="7" data-c="7"><span class="coordF">h</span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><path d="M20 12h14v11h12V12h12v11h12V12h14v27H16V12z"/><path d="M25 39h50l-5 36H30z"/><path d="M20 75h60l7 11H13z"/></g><text x="50" y="64" text-anchor="middle" font-size="34" font-weight="900" fill="#fff" stroke="#6f0d09" stroke-width="1.5">C</text></svg></div></div>
+<div class="sq dark" data-r="7" data-c="8"><span class="coordF">i</span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><path d="M27 78h50L72 63c-5-14-5-28-20-36l4-12-20 8-10 21 12 5 10-6 4 7c-12 5-17 15-25 28z"/><circle cx="46" cy="33" r="2.6" fill="#111" stroke="none"/></g></svg></div></div>
+<div class="sq light" data-r="7" data-c="9"><span class="coordF">j</span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#d6281f" stroke="#6f0d09" stroke-width="5"><path d="M25 18h13v10h12V18h12v10h13V18h10v25H15V18z"/><path d="M27 43h46l-5 30H32z"/><path d="M23 74h54l6 10H17z"/></g></svg></div></div>
+    </div>
+
+    <div id="resultOverlay" class="overlay">
+     <div class="resultCard">
+      <div id="resultIcon" class="resultIcon">♛</div>
+      <div id="resultTitle" class="resultTitle">МАТ</div>
+      <div id="resultText" class="resultText"></div>
+      <button id="resultNew">Нова партія</button>
+      <button id="resultClose" style="margin-top:8px">Закрити</button>
+     </div>
+    </div>
+
+    <div id="promoOverlay" class="overlay">
+     <div class="resultCard">
+      <div class="resultTitle" style="font-size:25px">Перетворення пішака</div>
+      <div class="promoButtons">
+       <button data-promo="Q">Q</button><button data-promo="R">R</button><button data-promo="C">C</button>
+       <button data-promo="A">A</button><button data-promo="B">B</button><button data-promo="N">N</button>
+      </div>
+     </div>
+    </div>
+   </div>
+
+   <div class="mobileInfo"><div id="mobileTurn"><b>Хід: червоних</b></div><div id="mobileState" style="margin-top:4px">A = слон+кінь · C = тура+кінь · пішаки менші</div></div>
+  </main>
+
+  <aside class="panel right">
+   <div style="font-weight:800;margin-bottom:10px">Партія</div>
+   <div class="statusbox" style="margin-bottom:10px">Комп’ютер <span style="color:#86c964">●</span><div id="engineText" style="font-size:12px;color:#999">Пошук 2 півходи</div></div>
+   <div id="moveList" class="moveList"></div>
+  </aside>
+ </div>
+</div>
+
+<script>
+(()=>{
+"use strict";
+
+const SVG={"rP": "<svg viewBox=\"0 0 100 100\"><g fill=\"#d6281f\" stroke=\"#6f0d09\" stroke-width=\"5\"><circle cx=\"50\" cy=\"28\" r=\"12\"/><path d=\"M39 40h22l5 24H34z\"/><path d=\"M30 68h40l6 13H24z\"/></g></svg>", "rN": "<svg viewBox=\"0 0 100 100\"><g fill=\"#d6281f\" stroke=\"#6f0d09\" stroke-width=\"5\"><path d=\"M27 78h50L72 63c-5-14-5-28-20-36l4-12-20 8-10 21 12 5 10-6 4 7c-12 5-17 15-25 28z\"/><circle cx=\"46\" cy=\"33\" r=\"2.6\" fill=\"#111\" stroke=\"none\"/></g></svg>", "rB": "<svg viewBox=\"0 0 100 100\"><g fill=\"#d6281f\" stroke=\"#6f0d09\" stroke-width=\"5\"><path d=\"M50 16c10 10 15 18 15 27 0 10-6 17-15 24-9-7-15-14-15-24 0-9 5-17 15-27z\"/><path d=\"M36 68h28l8 13H28z\"/></g><path d=\"M55 25l-10 18\" stroke=\"#fff\" stroke-width=\"4\"/></svg>", "rR": "<svg viewBox=\"0 0 100 100\"><g fill=\"#d6281f\" stroke=\"#6f0d09\" stroke-width=\"5\"><path d=\"M25 18h13v10h12V18h12v10h13V18h10v25H15V18z\"/><path d=\"M27 43h46l-5 30H32z\"/><path d=\"M23 74h54l6 10H17z\"/></g></svg>", "rQ": "<svg viewBox=\"0 0 100 100\"><g fill=\"#d6281f\" stroke=\"#6f0d09\" stroke-width=\"5\"><circle cx=\"20\" cy=\"24\" r=\"6\"/><circle cx=\"40\" cy=\"17\" r=\"6\"/><circle cx=\"60\" cy=\"17\" r=\"6\"/><circle cx=\"80\" cy=\"24\" r=\"6\"/><path d=\"M20 30l10 35h40l10-35-20 18-10-24-10 24z\"/><path d=\"M27 69h46l7 13H20z\"/></g></svg>", "rK": "<svg viewBox=\"0 0 100 100\"><g fill=\"#d6281f\" stroke=\"#6f0d09\" stroke-width=\"5\"><path d=\"M47 10h6v12h10v6H53v10h-6V28H37v-6h10z\"/><path d=\"M34 42h32c10 10 11 20 1 28H33c-10-8-9-18 1-28z\"/><path d=\"M27 72h46l7 12H20z\"/></g></svg>", "rA": "<svg viewBox=\"0 0 100 100\"><g fill=\"#d6281f\" stroke=\"#6f0d09\" stroke-width=\"5\"><path d=\"M50 10c12 12 18 22 18 34 0 12-7 21-18 30-11-9-18-18-18-30 0-12 6-22 18-34z\"/><path d=\"M30 72h40l8 13H22z\"/></g><path d=\"M56 24L44 44\" stroke=\"#fff\" stroke-width=\"4\"/><text x=\"50\" y=\"62\" text-anchor=\"middle\" font-size=\"34\" font-weight=\"900\" fill=\"#fff\" stroke=\"#6f0d09\" stroke-width=\"1.5\">A</text></svg>", "rC": "<svg viewBox=\"0 0 100 100\"><g fill=\"#d6281f\" stroke=\"#6f0d09\" stroke-width=\"5\"><path d=\"M20 12h14v11h12V12h12v11h12V12h14v27H16V12z\"/><path d=\"M25 39h50l-5 36H30z\"/><path d=\"M20 75h60l7 11H13z\"/></g><text x=\"50\" y=\"64\" text-anchor=\"middle\" font-size=\"34\" font-weight=\"900\" fill=\"#fff\" stroke=\"#6f0d09\" stroke-width=\"1.5\">C</text></svg>", "gP": "<svg viewBox=\"0 0 100 100\"><g fill=\"#2f7d32\" stroke=\"#0d3e18\" stroke-width=\"5\"><circle cx=\"50\" cy=\"28\" r=\"12\"/><path d=\"M39 40h22l5 24H34z\"/><path d=\"M30 68h40l6 13H24z\"/></g></svg>", "gN": "<svg viewBox=\"0 0 100 100\"><g fill=\"#2f7d32\" stroke=\"#0d3e18\" stroke-width=\"5\"><path d=\"M27 78h50L72 63c-5-14-5-28-20-36l4-12-20 8-10 21 12 5 10-6 4 7c-12 5-17 15-25 28z\"/><circle cx=\"46\" cy=\"33\" r=\"2.6\" fill=\"#111\" stroke=\"none\"/></g></svg>", "gB": "<svg viewBox=\"0 0 100 100\"><g fill=\"#2f7d32\" stroke=\"#0d3e18\" stroke-width=\"5\"><path d=\"M50 16c10 10 15 18 15 27 0 10-6 17-15 24-9-7-15-14-15-24 0-9 5-17 15-27z\"/><path d=\"M36 68h28l8 13H28z\"/></g><path d=\"M55 25l-10 18\" stroke=\"#fff\" stroke-width=\"4\"/></svg>", "gR": "<svg viewBox=\"0 0 100 100\"><g fill=\"#2f7d32\" stroke=\"#0d3e18\" stroke-width=\"5\"><path d=\"M25 18h13v10h12V18h12v10h13V18h10v25H15V18z\"/><path d=\"M27 43h46l-5 30H32z\"/><path d=\"M23 74h54l6 10H17z\"/></g></svg>", "gQ": "<svg viewBox=\"0 0 100 100\"><g fill=\"#2f7d32\" stroke=\"#0d3e18\" stroke-width=\"5\"><circle cx=\"20\" cy=\"24\" r=\"6\"/><circle cx=\"40\" cy=\"17\" r=\"6\"/><circle cx=\"60\" cy=\"17\" r=\"6\"/><circle cx=\"80\" cy=\"24\" r=\"6\"/><path d=\"M20 30l10 35h40l10-35-20 18-10-24-10 24z\"/><path d=\"M27 69h46l7 13H20z\"/></g></svg>", "gK": "<svg viewBox=\"0 0 100 100\"><g fill=\"#2f7d32\" stroke=\"#0d3e18\" stroke-width=\"5\"><path d=\"M47 10h6v12h10v6H53v10h-6V28H37v-6h10z\"/><path d=\"M34 42h32c10 10 11 20 1 28H33c-10-8-9-18 1-28z\"/><path d=\"M27 72h46l7 12H20z\"/></g></svg>", "gA": "<svg viewBox=\"0 0 100 100\"><g fill=\"#2f7d32\" stroke=\"#0d3e18\" stroke-width=\"5\"><path d=\"M50 10c12 12 18 22 18 34 0 12-7 21-18 30-11-9-18-18-18-30 0-12 6-22 18-34z\"/><path d=\"M30 72h40l8 13H22z\"/></g><path d=\"M56 24L44 44\" stroke=\"#fff\" stroke-width=\"4\"/><text x=\"50\" y=\"62\" text-anchor=\"middle\" font-size=\"34\" font-weight=\"900\" fill=\"#fff\" stroke=\"#0d3e18\" stroke-width=\"1.5\">A</text></svg>", "gC": "<svg viewBox=\"0 0 100 100\"><g fill=\"#2f7d32\" stroke=\"#0d3e18\" stroke-width=\"5\"><path d=\"M20 12h14v11h12V12h12v11h12V12h14v27H16V12z\"/><path d=\"M25 39h50l-5 36H30z\"/><path d=\"M20 75h60l7 11H13z\"/></g><text x=\"50\" y=\"64\" text-anchor=\"middle\" font-size=\"34\" font-weight=\"900\" fill=\"#fff\" stroke=\"#0d3e18\" stroke-width=\"1.5\">C</text></svg>"};
+const FILES="abcdefghij";
+const BACK=["R","N","A","B","Q","K","B","C","N","R"];
+const VAL={P:100,N:320,B:335,R:510,A:770,C:860,Q:960,K:30000};
+const ORTH=[[1,0],[-1,0],[0,1],[0,-1]];
+const DIAG=[[1,1],[1,-1],[-1,1],[-1,-1]];
+const KN=[[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
+
+const boardEl=document.getElementById("board");
+const variantEl=document.getElementById("variant"), mobileVariant=document.getElementById("mobileVariant");
+const modeEl=document.getElementById("mode"), mobileMode=document.getElementById("mobileMode");
+const turnStatus=document.getElementById("turnStatus"), subStatus=document.getElementById("subStatus");
+const mobileTurn=document.getElementById("mobileTurn"), mobileState=document.getElementById("mobileState");
+const moveList=document.getElementById("moveList");
+const resultOverlay=document.getElementById("resultOverlay"), promoOverlay=document.getElementById("promoOverlay");
+const resultIcon=document.getElementById("resultIcon"), resultTitle=document.getElementById("resultTitle"), resultText=document.getElementById("resultText");
+
+let state, turn, selected, legal, lastMove, history, gameOver, epSquare, pendingPromotion;
+
+function variant(){return variantEl.value}
+function enemy(c){return c==="r"?"g":"r"}
+function inside(r,c){return r>=0&&r<8&&c>=0&&c<10}
+function cloneState(s){return s.map(row=>row.map(p=>p?{...p}:null))}
+
+function initialState(){
+ const s=Array.from({length:8},()=>Array(10).fill(null));
+ for(let c=0;c<10;c++){
+  s[0][c]={c:"g",t:BACK[c],m:false};
+  s[1][c]={c:"g",t:"P",m:false};
+  s[6][c]={c:"r",t:"P",m:false};
+  s[7][c]={c:"r",t:BACK[c],m:false};
+ }
+ return s;
+}
+
+function reset(){
+ state=initialState(); turn="r"; selected=null; legal=[]; lastMove=null; history=[]; gameOver=false; epSquare=null; pendingPromotion=null;
+ resultOverlay.classList.remove("show"); promoOverlay.classList.remove("show"); render(); renderMoves();
+}
+
+function findKing(s,color){
+ for(let r=0;r<8;r++)for(let c=0;c<10;c++)if(s[r][c]&&s[r][c].c===color&&s[r][c].t==="K")return[r,c];
+ return null;
+}
+
+function attacksSquare(s,color,tr,tc){
+ for(let r=0;r<8;r++)for(let c=0;c<10;c++){
+  const p=s[r][c]; if(!p||p.c!==color)continue;
+  if(p.t==="P"){
+   const d=color==="r"?-1:1;
+   if((r+d===tr)&&(c-1===tc||c+1===tc))return true;
+   continue;
+  }
+  if(p.t==="K"){
+   for(const [dr,dc] of ORTH.concat(DIAG))if(r+dr===tr&&c+dc===tc)return true;
+   if(["kingKnight","both"].includes(variant()))for(const [dr,dc] of KN)if(r+dr===tr&&c+dc===tc)return true;
+   continue;
+  }
+  const ray=(dirs)=>{
+   for(const [dr,dc] of dirs){
+    let rr=r+dr,cc=c+dc;
+    while(inside(rr,cc)){
+     if(rr===tr&&cc===tc)return true;
+     if(s[rr][cc])break;
+     rr+=dr;cc+=dc;
+    }
+   }
+   return false;
+  };
+  if(["R","Q","C"].includes(p.t)&&ray(ORTH))return true;
+  if(["B","Q","A"].includes(p.t)&&ray(DIAG))return true;
+  if(["N","A","C"].includes(p.t))for(const [dr,dc] of KN)if(r+dr===tr&&c+dc===tc)return true;
+ }
+ return false;
+}
+
+function inCheck(s,color){
+ const k=findKing(s,color);
+ return !k || attacksSquare(s,enemy(color),k[0],k[1]);
+}
+
+function pseudoMoves(s,r,c,includeCastle=true,ep=epSquare){
+ const p=s[r][c], out=[]; if(!p)return out;
+ const color=p.c;
+ const push=(rr,cc,special=null)=>{if(inside(rr,cc)&&(!s[rr][cc]||s[rr][cc].c!==color))out.push({r:rr,c:cc,special})};
+ const slide=(dirs)=>{
+  for(const [dr,dc] of dirs){
+   let rr=r+dr,cc=c+dc;
+   while(inside(rr,cc)){
+    if(!s[rr][cc])out.push({r:rr,c:cc});
+    else{if(s[rr][cc].c!==color)out.push({r:rr,c:cc});break}
+    rr+=dr;cc+=dc;
+   }
+  }
+ };
+
+ if(p.t==="P"){
+  const d=color==="r"?-1:1, start=color==="r"?6:1;
+  if(inside(r+d,c)&&!s[r+d][c]){
+   out.push({r:r+d,c});
+   if(r===start&&!s[r+2*d][c])out.push({r:r+2*d,c,special:"double"});
+  }
+  for(const dc of [-1,1]){
+   const rr=r+d,cc=c+dc;
+   if(inside(rr,cc)&&s[rr][cc]&&s[rr][cc].c!==color)out.push({r:rr,c:cc});
+   if(ep&&ep.r===rr&&ep.c===cc)out.push({r:rr,c:cc,special:"ep"});
+  }
+ }
+ if(["R","Q","C"].includes(p.t))slide(ORTH);
+ if(["B","Q","A"].includes(p.t))slide(DIAG);
+ if(["N","A","C"].includes(p.t))for(const [dr,dc] of KN)push(r+dr,c+dc);
+ if(p.t==="K"){
+  for(const [dr,dc] of ORTH.concat(DIAG))push(r+dr,c+dc);
+  if(["kingKnight","both"].includes(variant()))for(const [dr,dc] of KN)push(r+dr,c+dc);
+  if(includeCastle&&!p.m&&!inCheck(s,color)){
+   const home=color==="r"?7:0;
+   if(r===home&&c===5){
+    // long: K f->c, R a->d
+    const rookL=s[home][0];
+    if(rookL&&rookL.c===color&&rookL.t==="R"&&!rookL.m&&[1,2,3,4].every(x=>!s[home][x])){
+     if([4,3,2].every(x=>!attacksSquare(s,enemy(color),home,x)))out.push({r:home,c:2,special:"castleL"});
+    }
+    // short: K f->i, R j->h
+    const rookR=s[home][9];
+    if(rookR&&rookR.c===color&&rookR.t==="R"&&!rookR.m&&[6,7,8].every(x=>!s[home][x])){
+     if([6,7,8].every(x=>!attacksSquare(s,enemy(color),home,x)))out.push({r:home,c:8,special:"castleR"});
+    }
+   }
+  }
+ }
+ return out;
+}
+
+function applyMove(s,m,ep,forSearch=false){
+ const ns=cloneState(s);
+ const p=ns[m.fr][m.fc];
+ let newEp=null;
+ if(m.special==="ep"){
+  const capR=p.c==="r"?m.tr+1:m.tr-1;
+  ns[capR][m.tc]=null;
+ }
+ ns[m.tr][m.tc]=p; ns[m.fr][m.fc]=null; p.m=true;
+ if(m.special==="castleL"){
+  const rook=ns[m.tr][0]; ns[m.tr][3]=rook; ns[m.tr][0]=null; rook.m=true;
+ }
+ if(m.special==="castleR"){
+  const rook=ns[m.tr][9]; ns[m.tr][7]=rook; ns[m.tr][9]=null; rook.m=true;
+ }
+ if(m.special==="double")newEp={r:(m.fr+m.tr)/2,c:m.fc};
+ if(p.t==="P"&&(m.tr===0||m.tr===7)&&forSearch)p.t=m.promote||"Q";
+ return {s:ns,ep:newEp};
+}
+
+function normalLegalMoves(s,color,ep=epSquare){
+ const all=[];
+ for(let r=0;r<8;r++)for(let c=0;c<10;c++){
+  const p=s[r][c]; if(!p||p.c!==color)continue;
+  for(const pm of pseudoMoves(s,r,c,true,ep)){
+   const m={fr:r,fc:c,tr:pm.r,tc:pm.c,special:pm.special||null};
+   const res=applyMove(s,m,ep,true);
+   if(!inCheck(res.s,color))all.push(m);
+  }
+ }
+ return all;
+}
+
+function emergencyMoves(s,color){
+ if(!["escape","both"].includes(variant()))return[];
+ const normal=normalLegalMoves(s,color,null);
+ if(normal.length!==0||!inCheck(s,color))return[];
+ const k=findKing(s,color); if(!k)return[];
+ const [kr,kc]=k,out=[];
+ for(const [dr,dc] of ORTH.concat(DIAG)){
+  const rr=kr+dr,cc=kc+dc;
+  if(!inside(rr,cc))continue;
+  const own=s[rr][cc];
+  if(!own||own.c!==color||own.t==="K")continue;
+  const ns=cloneState(s);
+  ns[rr][cc]=ns[kr][kc]; ns[kr][kc]=null;
+  if(!inCheck(ns,color))out.push({fr:kr,fc:kc,tr:rr,tc:cc,special:"escape"});
+ }
+ return out;
+}
+
+function allLegalMoves(s,color,ep=epSquare){
+ const n=normalLegalMoves(s,color,ep);
+ if(n.length)return n;
+ return emergencyMoves(s,color);
+}
+
+function legalForSquare(r,c){
+ return allLegalMoves(state,turn,epSquare).filter(m=>m.fr===r&&m.fc===c);
+}
+
+function render(){
+ const checkKing=inCheck(state,turn)?findKing(state,turn):null;
+ [...boardEl.children].forEach((sq,i)=>{
+  const r=Math.floor(i/10),c=i%10;
+  sq.classList.remove("selected","legal","capture","last","check");
+  if(selected&&selected.r===r&&selected.c===c)sq.classList.add("selected");
+  const lm=legal.find(m=>m.tr===r&&m.tc===c);
+  if(lm)sq.classList.add(state[r][c]?"capture":"legal");
+  if(lastMove&&((lastMove.fr===r&&lastMove.fc===c)||(lastMove.tr===r&&lastMove.tc===c)))sq.classList.add("last");
+  if(checkKing&&checkKing[0]===r&&checkKing[1]===c)sq.classList.add("check");
+  const old=sq.querySelector(".piece"); if(old)old.remove();
+  const p=state[r][c];
+  if(p){
+   const d=document.createElement("div"); d.className="piece "+(p.t==="P"?"pawn":"");
+   d.innerHTML=SVG[p.c+p.t]||""; sq.appendChild(d);
+  }
+ });
+ const who=turn==="r"?"червоних":"зелених";
+ const checked=inCheck(state,turn);
+ turnStatus.innerHTML=`<b style="color:${turn==="r"?"#ff6b63":"#86c964"}">Хід: ${who}${checked?" — ШАХ":""}</b>`;
+ mobileTurn.innerHTML=`<b>Хід: ${who}${checked?" — ШАХ":""}</b>`;
+ subStatus.textContent=modeEl.value==="ai"?(turn==="r"?"Ви граєте за червоних":"Хід комп’ютера"):"Двоє гравців";
+ mobileState.textContent = checked ? "Король під шахом" : "A = слон+кінь · C = тура+кінь";
+}
+
+function notation(m,p,captured){
+ if(m.special==="castleL")return "O-O-O";
+ if(m.special==="castleR")return "O-O";
+ if(m.special==="escape")return "K!"+FILES[m.tc]+(8-m.tr);
+ const pref=p.t==="P"?"":p.t;
+ return pref+(captured?"x":"")+FILES[m.tc]+(8-m.tr);
+}
+
+function renderMoves(){
+ moveList.innerHTML="";
+ for(let i=0;i<history.length;i+=2){
+  const row=document.createElement("div"); row.className="moveRow";
+  row.innerHTML=`<span>${Math.floor(i/2)+1}.</span><span>${history[i]?.note||""}</span><span>${history[i+1]?.note||""}</span>`;
+  moveList.appendChild(row);
+ }
+}
+
+function onSquare(e){
+ if(gameOver||pendingPromotion)return;
+ const r=+e.currentTarget.dataset.r,c=+e.currentTarget.dataset.c;
+ if(selected){
+  const m=legal.find(x=>x.tr===r&&x.tc===c);
+  if(m){commitMove(m);return}
+ }
+ const p=state[r][c];
+ if(p&&p.c===turn){
+  selected={r,c}; legal=legalForSquare(r,c); render();
+ }else{selected=null;legal=[];render()}
+}
+
+function commitMove(m){
+ const mover=state[m.fr][m.fc];
+ const captured = m.special==="ep" ? true : !!state[m.tr][m.tc];
+ const noteBase=notation(m,mover,captured);
+ const res=applyMove(state,m,epSquare,false);
+ state=res.s; epSquare=res.ep; lastMove=m; selected=null; legal=[];
+ const arrived=state[m.tr][m.tc];
+ if(arrived.t==="P"&&(m.tr===0||m.tr===7)){
+  pendingPromotion={m,noteBase,color:arrived.c};
+  promoOverlay.classList.add("show");
+  render();
+  return;
+ }
+ finishTurn(noteBase);
+}
+
+function finishTurn(note){
+ history.push({color:turn,note});
+ turn=enemy(turn);
+ render(); renderMoves();
+ if(checkGameEnd())return;
+ if(modeEl.value==="ai"&&turn==="g"&&!gameOver){
+  setTimeout(aiTurn,120);
+ }
+}
+
+function checkGameEnd(){
+ const normal=normalLegalMoves(state,turn,epSquare);
+ if(normal.length)return false;
+ if(inCheck(state,turn)){
+  const em=emergencyMoves(state,turn);
+  if(em.length)return false;
+  showResult("mate"); return true;
+ }
+ showResult("stalemate"); return true;
+}
+
+function showResult(kind){
+ gameOver=true; resultOverlay.classList.add("show");
+ if(kind==="mate"){
+  resultIcon.textContent="♛"; resultTitle.textContent="МАТ";
+  resultText.textContent=(turn==="g"?"Червоні":"Зелені")+" перемагають.";
+ }else{
+  resultIcon.textContent="♔"; resultTitle.textContent="ПАТ";
+  resultText.textContent="Нічия — шаху немає, але легальних ходів теж немає.";
+ }
+}
+
+function evaluate(s,perspective,ep=null){
+ const opp=enemy(perspective);
+ const my=normalLegalMoves(s,perspective,ep), his=normalLegalMoves(s,opp,ep);
+ if(!my.length&&inCheck(s,perspective))return -1000000;
+ if(!his.length&&inCheck(s,opp))return 1000000;
+ let score=0;
+ for(let r=0;r<8;r++)for(let c=0;c<10;c++){
+  const p=s[r][c]; if(!p)continue;
+  let v=VAL[p.t];
+  const center=(4.5-Math.abs(c-4.5))+(3.5-Math.abs(r-3.5));
+  if(["N","B","A","C"].includes(p.t))v+=center*4;
+  score += p.c===perspective ? v : -v;
+ }
+ score += (my.length-his.length)*2.5;
+ if(inCheck(s,opp))score+=35;
+ if(inCheck(s,perspective))score-=35;
+ return score;
+}
+
+function orderedMoves(s,color,ep){
+ const ms=allLegalMoves(s,color,ep);
+ ms.sort((a,b)=>{
+  const ta=s[a.tr][a.tc],tb=s[b.tr][b.tc];
+  const va=ta?VAL[ta.t]:0, vb=tb?VAL[tb.t]:0;
+  return vb-va;
+ });
+ return ms;
+}
+
+function minimax(s,color,depth,alpha,beta,rootColor,ep){
+ const moves=orderedMoves(s,color,ep);
+ if(depth===0||moves.length===0){
+  if(moves.length===0){
+   if(inCheck(s,color))return color===rootColor?-1000000:1000000;
+   return 0;
+  }
+  return evaluate(s,rootColor,ep);
+ }
+ if(color===rootColor){
+  let best=-Infinity;
+  for(const m of moves){
+   const res=applyMove(s,m,ep,true);
+   const val=minimax(res.s,enemy(color),depth-1,alpha,beta,rootColor,res.ep);
+   if(val>best)best=val; if(best>alpha)alpha=best; if(beta<=alpha)break;
+  }
+  return best;
+ }else{
+  let best=Infinity;
+  for(const m of moves){
+   const res=applyMove(s,m,ep,true);
+   const val=minimax(res.s,enemy(color),depth-1,alpha,beta,rootColor,res.ep);
+   if(val<best)best=val; if(best<beta)beta=best; if(beta<=alpha)break;
+  }
+  return best;
+ }
+}
+
+function aiTurn(){
+ const moves=orderedMoves(state,"g",epSquare);
+ if(!moves.length){checkGameEnd();return}
+ let best=-Infinity, choices=[];
+ // 2 plies: AI move + player's best reply. This is enough to stop most one-move blunders.
+ for(const m of moves){
+  const res=applyMove(state,m,epSquare,true);
+  let score=minimax(res.s,"r",1,-Infinity,Infinity,"g",res.ep);
+  // Small preference for checks, castling and avoiding needless king exposure.
+  if(inCheck(res.s,"r"))score+=20;
+  if(m.special==="castleL"||m.special==="castleR")score+=18;
+  if(score>best+0.01){best=score;choices=[m]}
+  else if(Math.abs(score-best)<=0.01)choices.push(m);
+ }
+ const m=choices[Math.floor(Math.random()*choices.length)];
+ commitMove(m);
+}
+
+document.querySelectorAll(".sq").forEach(s=>s.addEventListener("click",onSquare));
+document.getElementById("newGame").addEventListener("click",reset);
+document.getElementById("mobileNew").addEventListener("click",reset);
+document.getElementById("resultNew").addEventListener("click",reset);
+document.getElementById("resultClose").addEventListener("click",()=>resultOverlay.classList.remove("show"));
+
+variantEl.addEventListener("change",()=>{mobileVariant.value=variantEl.value;reset()});
+mobileVariant.addEventListener("change",()=>{variantEl.value=mobileVariant.value;reset()});
+modeEl.addEventListener("change",()=>{mobileMode.value=modeEl.value;reset()});
+mobileMode.addEventListener("change",()=>{modeEl.value=mobileMode.value;reset()});
+
+document.querySelectorAll("[data-promo]").forEach(btn=>btn.addEventListener("click",()=>{
+ if(!pendingPromotion)return;
+ const t=btn.dataset.promo;
+ state[pendingPromotion.m.tr][pendingPromotion.m.tc].t=t;
+ const note=pendingPromotion.noteBase+"="+t;
+ pendingPromotion=null;
+ promoOverlay.classList.remove("show");
+ finishTurn(note);
+}));
+
+reset();
+})();
+</script>
+</body>
+</html>
