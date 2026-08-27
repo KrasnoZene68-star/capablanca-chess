@@ -55,7 +55,7 @@ button{cursor:pointer}
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v3.0</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v3.1</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -183,7 +183,16 @@ button{cursor:pointer}
      </div>
     </div>
 
-    <div id="promoOverlay" class="overlay">
+    <div id="movesOverlay" class="overlay">
+ <div class="resultCard" style="width:min(88%,430px);max-height:82%;display:flex;flex-direction:column">
+  <div class="resultTitle" style="font-size:25px">Запис партії</div>
+  <div id="movesCount" style="color:#aaa;margin:4px 0 10px">Ходів: 0</div>
+  <div id="mobileMoveList" class="moveList" style="text-align:left;max-height:55vh;overflow:auto"></div>
+  <button id="movesClose" style="margin-top:12px">Закрити</button>
+ </div>
+</div>
+
+<div id="promoOverlay" class="overlay">
      <div class="resultCard">
       <div class="resultTitle" style="font-size:25px">Перетворення пішака</div>
       <div class="promoButtons">
@@ -194,7 +203,7 @@ button{cursor:pointer}
     </div>
    </div>
 
-   <div class="mobileInfo"><div id="mobileTurn"><b>Хід: червоних</b></div><div id="mobileState" style="margin-top:4px">A = слон+кінь · C = тура+кінь · пішаки менші</div></div>
+   <div class="mobileInfo"><div id="mobileTurn"><b>Хід: червоних</b></div><div id="mobileState" style="margin-top:4px">A = слон+кінь · C = тура+кінь · пішаки менші</div><button id="movesToggle" style="margin-top:8px">Ходи · 0</button></div>
   </main>
 
   <aside class="panel right">
@@ -223,6 +232,10 @@ const modeEl=document.getElementById("mode"), mobileMode=document.getElementById
 const turnStatus=document.getElementById("turnStatus"), subStatus=document.getElementById("subStatus");
 const mobileTurn=document.getElementById("mobileTurn"), mobileState=document.getElementById("mobileState");
 const moveList=document.getElementById("moveList");
+const mobileMoveList=document.getElementById("mobileMoveList");
+const movesToggle=document.getElementById("movesToggle");
+const movesOverlay=document.getElementById("movesOverlay");
+const movesCount=document.getElementById("movesCount");
 const resultOverlay=document.getElementById("resultOverlay"), promoOverlay=document.getElementById("promoOverlay");
 const resultIcon=document.getElementById("resultIcon"), resultTitle=document.getElementById("resultTitle"), resultText=document.getElementById("resultText");
 
@@ -437,12 +450,20 @@ function notation(m,p,captured){
 }
 
 function renderMoves(){
- moveList.innerHTML="";
- for(let i=0;i<history.length;i+=2){
-  const row=document.createElement("div"); row.className="moveRow";
-  row.innerHTML=`<span>${Math.floor(i/2)+1}.</span><span>${history[i]?.note||""}</span><span>${history[i+1]?.note||""}</span>`;
-  moveList.appendChild(row);
- }
+ const makeRows=(target)=>{
+  target.innerHTML="";
+  for(let i=0;i<history.length;i+=2){
+   const row=document.createElement("div"); row.className="moveRow";
+   row.innerHTML=`<span>${Math.floor(i/2)+1}.</span><span>${history[i]?.note||""}</span><span>${history[i+1]?.note||""}</span>`;
+   target.appendChild(row);
+  }
+  target.scrollTop=target.scrollHeight;
+ };
+ makeRows(moveList);
+ makeRows(mobileMoveList);
+ const fullMoves=Math.ceil(history.length/2);
+ movesToggle.textContent=`Ходи · ${fullMoves}`;
+ movesCount.textContent=`Ходів: ${fullMoves}`;
 }
 
 function onSquare(e){
@@ -586,6 +607,8 @@ document.getElementById("newGame").addEventListener("click",reset);
 document.getElementById("mobileNew").addEventListener("click",reset);
 document.getElementById("resultNew").addEventListener("click",reset);
 document.getElementById("resultClose").addEventListener("click",()=>resultOverlay.classList.remove("show"));
+movesToggle.addEventListener("click",()=>movesOverlay.classList.add("show"));
+document.getElementById("movesClose").addEventListener("click",()=>movesOverlay.classList.remove("show"));
 
 variantEl.addEventListener("change",()=>{mobileVariant.value=variantEl.value;reset()});
 mobileVariant.addEventListener("change",()=>{variantEl.value=mobileVariant.value;reset()});
