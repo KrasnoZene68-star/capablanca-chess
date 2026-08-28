@@ -55,7 +55,7 @@ button{cursor:pointer}
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.3 WORKING</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v4.1 STABLE · 8 рівнів</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -65,19 +65,16 @@ button{cursor:pointer}
      <option value="escape">Аварійний вихід через свою фігуру</option>
      <option value="both">Обидва ваші правила</option>
     </select>
-<label class="control">
-  <span>Сила комп’ютера</span>
-  <select id="strength">
-    <option value="1">1 · Новачок</option>
-    <option value="2">2 · Початківець</option>
-    <option value="3">3 · Учень</option>
-    <option value="4" selected>4 · Досвідчений</option>
-    <option value="5">5 · Сильний гравець</option>
-    <option value="6">6 · Експерт</option>
-    <option value="7">7 · Майстер</option>
-    <option value="8">8 · Гросмейстер</option>
-  </select>
-</label>
+    <select id="strength">
+     <option value="1">1 · Новачок</option>
+     <option value="2">2 · Початківець</option>
+     <option value="3">3 · Учень</option>
+     <option value="4" selected>4 · Досвідчений</option>
+     <option value="5">5 · Сильний гравець</option>
+     <option value="6">6 · Експерт</option>
+     <option value="7">7 · Майстер</option>
+     <option value="8">8 · Гросмейстер</option>
+    </select>
 
     <select id="mode">
      <option value="ai">Ви (червоні) проти комп’ютера</option>
@@ -97,16 +94,16 @@ button{cursor:pointer}
      <option value="escape">Аварійний вихід через свою фігуру</option>
      <option value="both">Обидва ваші правила</option>
     </select>
-<select id="mobileStrength" aria-label="Сила комп’ютера">
-  <option value="1">1 · Новачок</option>
-  <option value="2">2 · Початківець</option>
-  <option value="3">3 · Учень</option>
-  <option value="4" selected>4 · Досвідчений</option>
-  <option value="5">5 · Сильний</option>
-  <option value="6">6 · Експерт</option>
-  <option value="7">7 · Майстер</option>
-  <option value="8">8 · Гросмейстер</option>
-</select>
+    <select id="mobileStrength">
+     <option value="1">1 · Новачок</option>
+     <option value="2">2 · Початківець</option>
+     <option value="3">3 · Учень</option>
+     <option value="4" selected>4 · Досвідчений</option>
+     <option value="5">5 · Сильний</option>
+     <option value="6">6 · Експерт</option>
+     <option value="7">7 · Майстер</option>
+     <option value="8">8 · Гросмейстер</option>
+    </select>
 
     <div class="mobileRow">
      <select id="mobileMode"><option value="ai">Ви (червоні) проти комп’ютера</option><option value="two">Двоє гравців</option></select>
@@ -233,17 +230,11 @@ button{cursor:pointer}
 
   <aside class="panel right">
    <div style="font-weight:800;margin-bottom:10px">Партія</div>
-   <div class="statusbox" style="margin-bottom:10px">Комп’ютер <span style="color:#86c964">●</span><div id="engineText" style="font-size:12px;color:#999">Fairy‑Stockfish для класичних · власний ШІ для авторських</div></div>
+   <div class="statusbox" style="margin-bottom:10px">Комп’ютер <span style="color:#86c964">●</span><div id="engineText" style="font-size:12px;color:#999">Вбудований ШІ · 4/8 Досвідчений</div></div>
    <div id="moveList" class="moveList"></div>
   </aside>
  </div>
 </div>
-
-
-<!-- Fairy-Stockfish WebAssembly 1.1.12 (GPL-3.0).
-     Source: https://github.com/fairy-stockfish/fairy-stockfish.wasm
-     Package: https://www.npmjs.com/package/fairy-stockfish-nnue.wasm -->
-<script src="https://cdn.jsdelivr.net/npm/fairy-stockfish-nnue.wasm@1.1.12/stockfish.js"></script>
 
 <script>
 (()=>{
@@ -259,6 +250,7 @@ const KN=[[2,1],[2,-1],[-2,1],[-2,-1],[1,2],[1,-2],[-1,2],[-1,-2]];
 
 const boardEl=document.getElementById("board");
 const variantEl=document.getElementById("variant"), mobileVariant=document.getElementById("mobileVariant");
+const strengthEl=document.getElementById("strength"), mobileStrength=document.getElementById("mobileStrength");
 const modeEl=document.getElementById("mode"), mobileMode=document.getElementById("mobileMode");
 const turnStatus=document.getElementById("turnStatus"), subStatus=document.getElementById("subStatus");
 const mobileTurn=document.getElementById("mobileTurn"), mobileState=document.getElementById("mobileState");
@@ -272,189 +264,31 @@ const resultIcon=document.getElementById("resultIcon"), resultTitle=document.get
 
 let state, turn, selected, legal, lastMove, history, gameOver, epSquare, pendingPromotion;
 
-// --- Fairy-Stockfish bridge -------------------------------------------------
-// Red pieces are treated as UCI "white"; green pieces as UCI "black".
-// Classical Capablanca uses the real Fairy-Stockfish search core.
-// Author variants keep the local v4 engine until their non-standard move
-// legality is implemented inside a custom Fairy-Stockfish build.
-let fairyEngine=null, fairyReady=false, fairyBusy=false, fairyQueue=[];
-let fairyInitPromise=null;
-const FAIRY_VARIANT="capablanca";
-
-function fairySend(cmd){
- if(!fairyEngine)return;
- fairyEngine.postMessage(cmd);
-}
-function fairyWait(pred, timeout=8000){
- return new Promise((resolve,reject)=>{
-  const item={pred,resolve,reject};
-  fairyQueue.push(item);
-  const timer=setTimeout(()=>{
-   const i=fairyQueue.indexOf(item); if(i>=0)fairyQueue.splice(i,1);
-   reject(new Error("Fairy-Stockfish timeout"));
-  },timeout);
-  item.timer=timer;
- });
-}
-function fairyOnLine(line){
- line=String(line||"").trim();
- for(let i=0;i<fairyQueue.length;i++){
-  const q=fairyQueue[i];
-  if(q.pred(line)){
-   fairyQueue.splice(i,1); clearTimeout(q.timer); q.resolve(line); break;
-  }
- }
-}
+function variant(){return variantEl.value}
 
 function strengthLevel(){
- const v=parseInt((strengthEl&&strengthEl.value)||"4",10);
- return Math.max(1,Math.min(8,v));
+ const n=parseInt(strengthEl.value||"4",10);
+ return Math.max(1,Math.min(8,n));
 }
 function strengthProfile(){
- // Skill Level is deliberately paired with time/depth-like thinking limits.
- // Levels 1-3 also use UCI_LimitStrength/Elo where Fairy-Stockfish supports it.
- const table={
-  1:{skill:0,  elo:800,  ms:90,   label:"Новачок"},
-  2:{skill:2,  elo:1000, ms:140,  label:"Початківець"},
-  3:{skill:5,  elo:1200, ms:220,  label:"Учень"},
-  4:{skill:8,  elo:1450, ms:350,  label:"Досвідчений"},
-  5:{skill:12, elo:1700, ms:550,  label:"Сильний гравець"},
-  6:{skill:16, elo:2000, ms:850,  label:"Експерт"},
-  7:{skill:19, elo:2300, ms:1400, label:"Майстер"},
-  8:{skill:20, elo:2800, ms:2600, label:"Гросмейстер"}
+ const p={
+  1:{name:"Новачок",time:70,depth:1,slip:0.42,window:7},
+  2:{name:"Початківець",time:110,depth:1,slip:0.28,window:6},
+  3:{name:"Учень",time:180,depth:2,slip:0.16,window:5},
+  4:{name:"Досвідчений",time:320,depth:2,slip:0.08,window:4},
+  5:{name:"Сильний гравець",time:650,depth:3,slip:0.03,window:3},
+  6:{name:"Експерт",time:1100,depth:3,slip:0.01,window:2},
+  7:{name:"Майстер",time:2100,depth:4,slip:0,window:1},
+  8:{name:"Гросмейстер",time:4200,depth:4,slip:0,window:1}
  };
- return table[strengthLevel()];
-}
-function applyFairyStrength(){
- if(!fairyEngine)return;
- const p=strengthProfile();
- fairySend(`setoption name Skill Level value ${p.skill}`);
- // These options are accepted by Stockfish/Fairy-Stockfish builds that expose
- // Elo limiting. Unsupported options are harmlessly ignored by UCI engines.
- if(p.elo<2800){
-  fairySend("setoption name UCI_LimitStrength value true");
-  fairySend(`setoption name UCI_Elo value ${p.elo}`);
- }else{
-  fairySend("setoption name UCI_LimitStrength value false");
- }
+ return p[strengthLevel()];
 }
 function updateStrengthStatus(){
  const p=strengthProfile();
- if(document.getElementById("engineText")){
-  const base="Вбудований ШІ";
-  document.getElementById("engineText").textContent=`${base} · ${strengthLevel()}/8 ${p.label}`;
- }
+ const e=document.getElementById("engineText");
+ if(e)e.textContent=`Вбудований ШІ · ${strengthLevel()}/8 ${p.name}`;
 }
 
-async function initFairy(){
- if(fairyReady)return true;
- if(fairyInitPromise)return fairyInitPromise;
- fairyInitPromise=(async()=>{
-  try{
-   if(typeof Stockfish!=="function")throw new Error("Stockfish loader unavailable");
-   fairyEngine=await Stockfish();
-   fairyEngine.addMessageListener(fairyOnLine);
-   fairySend("uci");
-   await fairyWait(x=>x==="uciok",2200);
-   fairySend(`setoption name UCI_Variant value ${FAIRY_VARIANT}`);
-   // Modest settings keep iPhone responsive while remaining vastly stronger
-   // than the previous JavaScript minimax.
-   fairySend("setoption name Threads value 1");
-   fairySend("setoption name Hash value 32");
-   applyFairyStrength();
-   fairySend("isready");
-   await fairyWait(x=>x==="readyok",2200);
-   fairyReady=true;
-   if(document.getElementById("engineText"))
-    updateStrengthStatus();
-   return true;
-  }catch(e){
-   console.warn("Fairy-Stockfish unavailable; local AI fallback",e);
-   fairyReady=false;
-   fairyEngine=null;
-   if(document.getElementById("engineText"))
-    document.getElementById("engineText").textContent="Власний ШІ (резерв)";
-   return false;
-  } finally {
-   if(!fairyReady) fairyInitPromise=null;
-  }
- })();
- return fairyInitPromise;
-}
-
-function fenPiece(p){
- const map={P:"p",N:"n",B:"b",R:"r",Q:"q",K:"k",A:"a",C:"c"};
- let ch=map[p.t]||"";
- return p.c==="r"?ch.toUpperCase():ch;
-}
-function stateToFen(){
- const rows=[];
- for(let r=0;r<8;r++){
-  let row="",empty=0;
-  for(let c=0;c<10;c++){
-   const p=state[r][c];
-   if(!p){empty++;continue}
-   if(empty){row+=empty;empty=0}
-   row+=fenPiece(p);
-  }
-  if(empty)row+=empty;
-  rows.push(row);
- }
- let rights="";
- const rk=state[7][5], rrL=state[7][0], rrR=state[7][9];
- const gk=state[0][5], grL=state[0][0], grR=state[0][9];
- if(rk?.t==="K"&&rk.c==="r"&&!rk.m){
-  if(rrR?.t==="R"&&rrR.c==="r"&&!rrR.m)rights+="K";
-  if(rrL?.t==="R"&&rrL.c==="r"&&!rrL.m)rights+="Q";
- }
- if(gk?.t==="K"&&gk.c==="g"&&!gk.m){
-  if(grR?.t==="R"&&grR.c==="g"&&!grR.m)rights+="k";
-  if(grL?.t==="R"&&grL.c==="g"&&!grL.m)rights+="q";
- }
- if(!rights)rights="-";
- const ep=epSquare ? FILES[epSquare.c]+(8-epSquare.r) : "-";
- const half=0, full=Math.floor(history.length/2)+1;
- return `${rows.join("/")} ${turn==="r"?"w":"b"} ${rights} ${ep} ${half} ${full}`;
-}
-function uciToMove(uci){
- if(!uci||uci==="(none)"||uci.length<4)return null;
- const fc=FILES.indexOf(uci[0]), fr=8-parseInt(uci[1],10);
- const tc=FILES.indexOf(uci[2]), tr=8-parseInt(uci[3],10);
- if(fc<0||tc<0||!inside(fr,fc)||!inside(tr,tc))return null;
- const legalNow=allLegalMoves(state,turn,epSquare);
- let m=legalNow.find(x=>x.fr===fr&&x.fc===fc&&x.tr===tr&&x.tc===tc);
- if(!m)return null;
- if(uci[4]){
-  const pm={q:"Q",r:"R",b:"B",n:"N",a:"A",c:"C"};
-  m={...m,promote:pm[uci[4].toLowerCase()]||"Q"};
- }
- return m;
-}
-async function fairyBestMove(){
- const ok=await initFairy();
- if(!ok)return null;
- fairyBusy=true;
- try{
-  fairySend("stop");
-  fairySend("ucinewgame");
-  fairySend(`setoption name UCI_Variant value ${FAIRY_VARIANT}`);
-  fairySend(`position fen ${stateToFen()}`);
-  fairySend("isready");
-  await fairyWait(x=>x==="readyok",1800);
-  // 900 ms is a practical iPhone setting. Fairy-Stockfish search is much
-  // stronger than the old 2-4 ply JavaScript search even at this limit.
-  fairySend(`go movetime ${strengthProfile().ms}`);
-  const line=await fairyWait(x=>x.startsWith("bestmove "),5000);
-  const uci=line.split(/\s+/)[1];
-  return uciToMove(uci);
- }catch(e){
-  console.warn("Fairy search failed; falling back",e);
-  return null;
- }finally{fairyBusy=false}
-}
-
-
-function variant(){return variantEl.value}
 function enemy(c){return c==="r"?"g":"r"}
 function inside(r,c){return r>=0&&r<8&&c>=0&&c<10}
 function cloneState(s){return s.map(row=>row.map(p=>p?{...p}:null))}
@@ -473,7 +307,6 @@ function initialState(){
 function reset(){
  state=initialState(); turn="r"; selected=null; legal=[]; lastMove=null; history=[]; gameOver=false; epSquare=null; pendingPromotion=null;
  resultOverlay.classList.remove("show"); promoOverlay.classList.remove("show"); render(); renderMoves();
-
 }
 
 function findKing(s,color){
@@ -701,12 +534,6 @@ function commitMove(m){
  state=res.s; epSquare=res.ep; lastMove=m; selected=null; legal=[];
  const arrived=state[m.tr][m.tc];
  if(arrived.t==="P"&&(m.tr===0||m.tr===7)){
-  if(turn==="g"&&modeEl.value==="ai"){
-   const pt=m.promote||"Q";
-   arrived.t=pt;
-   finishTurn(noteBase+"="+pt);
-   return;
-  }
   pendingPromotion={m,noteBase,color:arrived.c};
   promoOverlay.classList.add("show");
   render();
@@ -1001,19 +828,15 @@ function searchRoot(depth){
  return {move:bestMove,score:best};
 }
 
-function localAiTurn(){
- const lvl=strengthLevel();
- const localTime=[0,120,180,260,420,650,950,1500,2400][lvl];
- const localDepth=[0,1,1,2,2,3,3,3,4][lvl];
- AI_TIME_MS=localTime; AI_MAX_DEPTH=localDepth;
+function aiTurn(){
  const moves=orderedMoves(state,"g",epSquare);
  if(!moves.length){checkGameEnd();return}
 
- // Time-bounded iterative deepening: old laptops remain responsive, while
- // simple positions are searched deeper. Completed depths are always kept.
- AI_DEADLINE=performance.now()+AI_TIME_MS;
+ const p=strengthProfile();
+ AI_DEADLINE=performance.now()+p.time;
+
  let chosen=moves[0], completedDepth=0;
- for(let depth=1;depth<=AI_MAX_DEPTH;depth++){
+ for(let depth=1;depth<=p.depth;depth++){
   AI_ABORT=false;
   const res=searchRoot(depth);
   if(!AI_ABORT&&res.move){
@@ -1021,17 +844,16 @@ function localAiTurn(){
    completedDepth=depth;
   }else break;
  }
- // On very complex positions we still use the best move from the last fully
- // completed depth instead of a partially searched result.
- commitMove(chosen);
-}
 
-function aiTurn(){
- if(gameOver||turn!=="g")return;
- // v5.3 reliability mode: always use the built-in engine.
- // This guarantees that the computer answers on iPhone.
+ // On the first levels the computer occasionally chooses another plausible
+ // ordered move. This creates human-like weakness without breaking the rules.
+ if(p.slip>0 && moves.length>1 && Math.random()<p.slip){
+  const n=Math.min(p.window,moves.length);
+  chosen=moves[Math.floor(Math.random()*n)];
+ }
+
  updateStrengthStatus();
- localAiTurn();
+ commitMove(chosen);
 }
 
 document.querySelectorAll(".sq").forEach(s=>s.addEventListener("click",onSquare));
@@ -1042,16 +864,18 @@ document.getElementById("resultClose").addEventListener("click",()=>resultOverla
 movesToggle.addEventListener("click",()=>movesOverlay.classList.add("show"));
 document.getElementById("movesClose").addEventListener("click",()=>movesOverlay.classList.remove("show"));
 
-variantEl.addEventListener("change",()=>{
- mobileVariant.value=variantEl.value; reset();
- if(document.getElementById("engineText"))
-  document.getElementById("engineText").textContent=variant()==="classic"?"Fairy‑Stockfish":"Авторський режим · власний ШІ";
+
+strengthEl.addEventListener("change",()=>{
+ mobileStrength.value=strengthEl.value;
+ updateStrengthStatus();
 });
-mobileVariant.addEventListener("change",()=>{
- variantEl.value=mobileVariant.value; reset();
- if(document.getElementById("engineText"))
-  document.getElementById("engineText").textContent=variant()==="classic"?"Fairy‑Stockfish":"Авторський режим · власний ШІ";
+mobileStrength.addEventListener("change",()=>{
+ strengthEl.value=mobileStrength.value;
+ updateStrengthStatus();
 });
+
+variantEl.addEventListener("change",()=>{mobileVariant.value=variantEl.value;reset()});
+mobileVariant.addEventListener("change",()=>{variantEl.value=mobileVariant.value;reset()});
 modeEl.addEventListener("change",()=>{mobileMode.value=modeEl.value;reset()});
 mobileMode.addEventListener("change",()=>{modeEl.value=mobileMode.value;reset()});
 
@@ -1064,20 +888,6 @@ document.querySelectorAll("[data-promo]").forEach(btn=>btn.addEventListener("cli
  promoOverlay.classList.remove("show");
  finishTurn(note);
 }));
-
-
-if(strengthEl){
- strengthEl.addEventListener("change",()=>{
-  if(mobileStrength)mobileStrength.value=strengthEl.value;
-  applyFairyStrength(); updateStrengthStatus();
- });
-}
-if(mobileStrength){
- mobileStrength.addEventListener("change",()=>{
-  if(strengthEl)strengthEl.value=mobileStrength.value;
-  applyFairyStrength(); updateStrengthStatus();
- });
-}
 
 reset();
 updateStrengthStatus();
