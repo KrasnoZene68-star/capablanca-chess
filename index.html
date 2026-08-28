@@ -55,7 +55,7 @@ button{cursor:pointer}
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.1 Fairy‑Stockfish</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.2 Fairy‑Stockfish</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -355,7 +355,7 @@ async function initFairy(){
    fairyEngine=await Stockfish();
    fairyEngine.addMessageListener(fairyOnLine);
    fairySend("uci");
-   await fairyWait(x=>x==="uciok",12000);
+   await fairyWait(x=>x==="uciok",2200);
    fairySend(`setoption name UCI_Variant value ${FAIRY_VARIANT}`);
    // Modest settings keep iPhone responsive while remaining vastly stronger
    // than the previous JavaScript minimax.
@@ -363,7 +363,7 @@ async function initFairy(){
    fairySend("setoption name Hash value 32");
    applyFairyStrength();
    fairySend("isready");
-   await fairyWait(x=>x==="readyok",12000);
+   await fairyWait(x=>x==="readyok",2200);
    fairyReady=true;
    if(document.getElementById("engineText"))
     updateStrengthStatus();
@@ -371,9 +371,12 @@ async function initFairy(){
   }catch(e){
    console.warn("Fairy-Stockfish unavailable; local AI fallback",e);
    fairyReady=false;
+   fairyEngine=null;
    if(document.getElementById("engineText"))
     document.getElementById("engineText").textContent="Власний ШІ (резерв)";
    return false;
+  } finally {
+   if(!fairyReady) fairyInitPromise=null;
   }
  })();
  return fairyInitPromise;
@@ -437,11 +440,11 @@ async function fairyBestMove(){
   fairySend(`setoption name UCI_Variant value ${FAIRY_VARIANT}`);
   fairySend(`position fen ${stateToFen()}`);
   fairySend("isready");
-  await fairyWait(x=>x==="readyok",8000);
+  await fairyWait(x=>x==="readyok",1800);
   // 900 ms is a practical iPhone setting. Fairy-Stockfish search is much
   // stronger than the old 2-4 ply JavaScript search even at this limit.
   fairySend(`go movetime ${strengthProfile().ms}`);
-  const line=await fairyWait(x=>x.startsWith("bestmove "),10000);
+  const line=await fairyWait(x=>x.startsWith("bestmove "),5000);
   const uci=line.split(/\s+/)[1];
   return uciToMove(uci);
  }catch(e){
@@ -1090,7 +1093,6 @@ if(mobileStrength){
 
 reset();
 updateStrengthStatus();
-initFairy();
 })();
 </script>
 </body>
