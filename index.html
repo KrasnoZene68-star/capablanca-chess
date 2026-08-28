@@ -55,7 +55,7 @@ button{cursor:pointer}
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v3.1</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v4.0 AI</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -527,79 +527,279 @@ function showResult(kind){
  }
 }
 
+function cheapMobility(s,color,ep=null){
+ let n=0;
+ for(let r=0;r<8;r++)for(let c=0;c<10;c++){
+  const p=s[r][c];
+  if(!p||p.c!==color)continue;
+  n+=pseudoMoves(s,r,c,false,ep).length;
+ }
+ return n;
+}
+
+function pawnStructureScore(s,color){
+ let score=0;
+ const files=Array(10).fill(0);
+ const pawns=[];
+ for(let r=0;r<8;r++)for(let c=0;c<10;c++){
+  const p=s[r][c];
+  if(p&&p.c===color&&p.t==="P"){files[c]++;pawns.push([r,c])}
+ }
+ for(let c=0;c<10;c++){
+  if(files[c]>1)score-=18*(files[c]-1); // doubled pawns
+ }
+ for(const [r,c] of pawns){
+  const left=c>0?files[c-1]:0, right=c<9?files[c+1]:0;
+  if(!left&&!right)score-=12; // isolated pawn
+  const advance=color==="r"?(6-r):(r-1);
+  score+=advance*5;
+  // passed pawn bonus
+  let blocked=false;
+  for(let cc=Math.max(0,c-1);cc<=Math.min(9,c+1);cc++){
+   if(color==="r"){
+    for(let rr=r-1;rr>=0;rr--)if(s[rr][cc]?.c===enemy(color)&&s[rr][cc]?.t==="P"){blocked=true;break}
+   }else{
+    for(let rr=r+1;rr<8;rr++)if(s[rr][cc]?.c===enemy(color)&&s[rr][cc]?.t==="P"){blocked=true;break}
+   }
+   if(blocked)break;
+  }
+  if(!blocked)score+=12+advance*8;
+ }
+ return score;
+}
+
+function kingSafetyScore(s,color){
+ const k=findKing(s,color); if(!k)return -100000;
+ const [kr,kc]=k, opp=enemy(color);
+ let danger=0, cover=0;
+ for(const [dr,dc] of ORTH.concat(DIAG)){
+  const r=kr+dr,c=kc+dc;
+  if(!inside(r,c))continue;
+  if(attacksSquare(s,opp,r,c))danger++;
+  if(s[r][c]?.c===color&&s[r][c]?.t==="P")cover++;
+ }
+ let score=cover*12-danger*18;
+ // Encourage a king that has castled or at least moved away from the initial centre.
+ const kp=s[kr][kc];
+ if(kp?.m && (kc<=3||kc>=7))score+=22;
+ return score;
+}
+
+function pieceActivityScore(s,color){
+ let score=0;
+ const home=color==="r"?7:0;
+ for(let r=0;r<8;r++)for(let c=0;c<10;c++){
+  const p=s[r][c]; if(!p||p.c!==color)continue;
+  const v=VAL[p.t];
+  const center=(4.5-Math.abs(c-4.5))+(3.5-Math.abs(r-3.5));
+
+  if(["N","B"].includes(p.t))score+=center*4.0;
+  if(["A","C"].includes(p.t))score+=center*3.2;
+  if(p.t==="Q")score+=center*1.2;
+
+  // Development: minor and compound pieces should leave the back rank.
+  if(["N","B","A","C"].includes(p.t)){
+   if(r===home)score-=18;
+   else score+=10;
+  }
+
+  // Rook / Chancellor activity on open and semi-open files.
+  if(["R","C"].includes(p.t)){
+   let ownPawn=false, enemyPawn=false;
+   for(let rr=0;rr<8;rr++){
+    if(s[rr][c]?.t==="P"){
+     if(s[rr][c].c===color)ownPawn=true; else enemyPawn=true;
+    }
+   }
+   if(!ownPawn)score+=enemyPawn?12:22;
+  }
+
+  // Hanging / en-prise pieces. Heavy pieces receive stronger protection incentives.
+  if(p.t!=="K"&&attacksSquare(s,enemy(color),r,c)){
+   const defended=attacksSquare(s,color,r,c);
+   score-=Math.min(150,v*(defended?0.055:0.16));
+  }
+ }
+ return score;
+}
+
 function evaluate(s,perspective,ep=null){
  const opp=enemy(perspective);
- const my=normalLegalMoves(s,perspective,ep), his=normalLegalMoves(s,opp,ep);
- if(!my.length&&inCheck(s,perspective))return -1000000;
- if(!his.length&&inCheck(s,opp))return 1000000;
- let score=0;
+ let material=0;
  for(let r=0;r<8;r++)for(let c=0;c<10;c++){
   const p=s[r][c]; if(!p)continue;
-  let v=VAL[p.t];
-  const center=(4.5-Math.abs(c-4.5))+(3.5-Math.abs(r-3.5));
-  if(["N","B","A","C"].includes(p.t))v+=center*4;
-  score += p.c===perspective ? v : -v;
+  material += p.c===perspective ? VAL[p.t] : -VAL[p.t];
  }
- score += (my.length-his.length)*2.5;
- if(inCheck(s,opp))score+=35;
- if(inCheck(s,perspective))score-=35;
+
+ let score=material;
+ score += pieceActivityScore(s,perspective)-pieceActivityScore(s,opp);
+ score += pawnStructureScore(s,perspective)-pawnStructureScore(s,opp);
+ score += kingSafetyScore(s,perspective)-kingSafetyScore(s,opp);
+
+ const myMob=cheapMobility(s,perspective,ep);
+ const opMob=cheapMobility(s,opp,ep);
+ score+=(myMob-opMob)*1.6;
+
+ if(inCheck(s,opp))score+=45;
+ if(inCheck(s,perspective))score-=55;
+ return score;
+}
+
+function moveOrderScore(s,m,color){
+ const mover=s[m.fr][m.fc];
+ const target=s[m.tr][m.tc];
+ let score=0;
+ if(target){
+  // MVV-LVA: valuable victim, inexpensive attacker.
+  score += VAL[target.t]*12-(VAL[mover.t]||0);
+ }
+ if(m.special==="ep")score+=VAL.P*10;
+ if(m.special==="castleL"||m.special==="castleR")score+=550;
+ if(mover?.t==="P"&&(m.tr===0||m.tr===7))score+=9000;
+ const res=applyMove(s,m,null,true);
+ if(inCheck(res.s,enemy(color)))score+=420;
+ // Prefer moves that do not leave a valuable piece immediately hanging.
+ if(mover&&mover.t!=="K"&&attacksSquare(res.s,enemy(color),m.tr,m.tc)){
+  if(!attacksSquare(res.s,color,m.tr,m.tc))score-=Math.min(1200,VAL[mover.t]*2);
+ }
  return score;
 }
 
 function orderedMoves(s,color,ep){
  const ms=allLegalMoves(s,color,ep);
- ms.sort((a,b)=>{
-  const ta=s[a.tr][a.tc],tb=s[b.tr][b.tc];
-  const va=ta?VAL[ta.t]:0, vb=tb?VAL[tb.t]:0;
-  return vb-va;
- });
+ ms.sort((a,b)=>moveOrderScore(s,b,color)-moveOrderScore(s,a,color));
  return ms;
 }
 
-function minimax(s,color,depth,alpha,beta,rootColor,ep){
- const moves=orderedMoves(s,color,ep);
- if(depth===0||moves.length===0){
-  if(moves.length===0){
-   if(inCheck(s,color))return color===rootColor?-1000000:1000000;
-   return 0;
+let AI_DEADLINE=0;
+let AI_ABORT=false;
+const MATE_SCORE=1000000;
+
+function tacticalMoves(s,color,ep){
+ return orderedMoves(s,color,ep).filter(m=>{
+  const target=s[m.tr][m.tc];
+  if(target||m.special==="ep")return true;
+  const mover=s[m.fr][m.fc];
+  if(mover?.t==="P"&&(m.tr===0||m.tr===7))return true;
+  // Include forcing checks in quiescence.
+  const res=applyMove(s,m,ep,true);
+  return inCheck(res.s,enemy(color));
+ });
+}
+
+function quiescence(s,color,alpha,beta,rootColor,ep,qDepth=2){
+ if(performance.now()>AI_DEADLINE){AI_ABORT=true;return evaluate(s,rootColor,ep)}
+ const stand=evaluate(s,rootColor,ep);
+ if(qDepth<=0)return stand;
+
+ if(color===rootColor){
+  if(stand>=beta)return stand;
+  if(stand>alpha)alpha=stand;
+  let best=stand;
+  const moves=tacticalMoves(s,color,ep);
+  for(const m of moves){
+   const res=applyMove(s,m,ep,true);
+   const v=quiescence(res.s,enemy(color),alpha,beta,rootColor,res.ep,qDepth-1);
+   if(AI_ABORT)return best;
+   if(v>best)best=v;
+   if(best>alpha)alpha=best;
+   if(alpha>=beta)break;
   }
-  return evaluate(s,rootColor,ep);
+  return best;
+ }else{
+  if(stand<=alpha)return stand;
+  if(stand<beta)beta=stand;
+  let best=stand;
+  const moves=tacticalMoves(s,color,ep);
+  for(const m of moves){
+   const res=applyMove(s,m,ep,true);
+   const v=quiescence(res.s,enemy(color),alpha,beta,rootColor,res.ep,qDepth-1);
+   if(AI_ABORT)return best;
+   if(v<best)best=v;
+   if(best<beta)beta=best;
+   if(alpha>=beta)break;
+  }
+  return best;
  }
+}
+
+function minimax(s,color,depth,alpha,beta,rootColor,ep,ply=0){
+ if(performance.now()>AI_DEADLINE){AI_ABORT=true;return evaluate(s,rootColor,ep)}
+ const moves=orderedMoves(s,color,ep);
+ if(!moves.length){
+  if(inCheck(s,color))return color===rootColor?(-MATE_SCORE+ply):(MATE_SCORE-ply);
+  return 0;
+ }
+ if(depth===0)return quiescence(s,color,alpha,beta,rootColor,ep,2);
+
  if(color===rootColor){
   let best=-Infinity;
   for(const m of moves){
    const res=applyMove(s,m,ep,true);
-   const val=minimax(res.s,enemy(color),depth-1,alpha,beta,rootColor,res.ep);
-   if(val>best)best=val; if(best>alpha)alpha=best; if(beta<=alpha)break;
+   const val=minimax(res.s,enemy(color),depth-1,alpha,beta,rootColor,res.ep,ply+1);
+   if(AI_ABORT)return best===-Infinity?evaluate(s,rootColor,ep):best;
+   if(val>best)best=val;
+   if(best>alpha)alpha=best;
+   if(beta<=alpha)break;
   }
   return best;
  }else{
   let best=Infinity;
   for(const m of moves){
    const res=applyMove(s,m,ep,true);
-   const val=minimax(res.s,enemy(color),depth-1,alpha,beta,rootColor,res.ep);
-   if(val<best)best=val; if(best<beta)beta=best; if(beta<=alpha)break;
+   const val=minimax(res.s,enemy(color),depth-1,alpha,beta,rootColor,res.ep,ply+1);
+   if(AI_ABORT)return best===Infinity?evaluate(s,rootColor,ep):best;
+   if(val<best)best=val;
+   if(best<beta)beta=best;
+   if(beta<=alpha)break;
   }
   return best;
  }
 }
 
+function searchRoot(depth){
+ const moves=orderedMoves(state,"g",epSquare);
+ let best=-Infinity,bestMove=moves[0]||null;
+ for(const m of moves){
+  if(performance.now()>AI_DEADLINE){AI_ABORT=true;break}
+  const res=applyMove(state,m,epSquare,true);
+  let score=minimax(res.s,"r",depth-1,-Infinity,Infinity,"g",res.ep,1);
+
+  // Strategic tie-breakers, deliberately small compared with a pawn (100).
+  if(inCheck(res.s,"r"))score+=7;
+  if(m.special==="castleL"||m.special==="castleR")score+=10;
+
+  // Strongly discourage obviously bad trades: moving a high-value piece onto an
+  // attacked square without adequate support.
+  const moved=res.s[m.tr][m.tc];
+  if(moved&&moved.t!=="K"&&attacksSquare(res.s,"r",m.tr,m.tc)&&!attacksSquare(res.s,"g",m.tr,m.tc)){
+   score-=Math.min(90,VAL[moved.t]*0.12);
+  }
+
+  if(score>best){best=score;bestMove=m}
+ }
+ return {move:bestMove,score:best};
+}
+
 function aiTurn(){
  const moves=orderedMoves(state,"g",epSquare);
  if(!moves.length){checkGameEnd();return}
- let best=-Infinity, choices=[];
- // 2 plies: AI move + player's best reply. This is enough to stop most one-move blunders.
- for(const m of moves){
-  const res=applyMove(state,m,epSquare,true);
-  let score=minimax(res.s,"r",1,-Infinity,Infinity,"g",res.ep);
-  // Small preference for checks, castling and avoiding needless king exposure.
-  if(inCheck(res.s,"r"))score+=20;
-  if(m.special==="castleL"||m.special==="castleR")score+=18;
-  if(score>best+0.01){best=score;choices=[m]}
-  else if(Math.abs(score-best)<=0.01)choices.push(m);
+
+ // Time-bounded iterative deepening: old laptops remain responsive, while
+ // simple positions are searched deeper. Completed depths are always kept.
+ AI_DEADLINE=performance.now()+2600;
+ let chosen=moves[0], completedDepth=0;
+ for(let depth=2;depth<=4;depth++){
+  AI_ABORT=false;
+  const res=searchRoot(depth);
+  if(!AI_ABORT&&res.move){
+   chosen=res.move;
+   completedDepth=depth;
+  }else break;
  }
- const m=choices[Math.floor(Math.random()*choices.length)];
- commitMove(m);
+ // On very complex positions we still use the best move from the last fully
+ // completed depth instead of a partially searched result.
+ commitMove(chosen);
 }
 
 document.querySelectorAll(".sq").forEach(s=>s.addEventListener("click",onSquare));
