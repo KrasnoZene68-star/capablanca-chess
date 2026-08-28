@@ -55,7 +55,7 @@ button{cursor:pointer}
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.2 Fairy‑Stockfish</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.3 WORKING</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -341,7 +341,7 @@ function applyFairyStrength(){
 function updateStrengthStatus(){
  const p=strengthProfile();
  if(document.getElementById("engineText")){
-  const base=variant()==="classic" ? "Fairy‑Stockfish" : "Авторський ШІ";
+  const base="Вбудований ШІ";
   document.getElementById("engineText").textContent=`${base} · ${strengthLevel()}/8 ${p.label}`;
  }
 }
@@ -473,7 +473,7 @@ function initialState(){
 function reset(){
  state=initialState(); turn="r"; selected=null; legal=[]; lastMove=null; history=[]; gameOver=false; epSquare=null; pendingPromotion=null;
  resultOverlay.classList.remove("show"); promoOverlay.classList.remove("show"); render(); renderMoves();
- if(modeEl.value==="ai"&&variant()==="classic")initFairy();
+
 }
 
 function findKing(s,color){
@@ -1011,9 +1011,9 @@ function localAiTurn(){
 
  // Time-bounded iterative deepening: old laptops remain responsive, while
  // simple positions are searched deeper. Completed depths are always kept.
- AI_DEADLINE=performance.now()+2600;
+ AI_DEADLINE=performance.now()+AI_TIME_MS;
  let chosen=moves[0], completedDepth=0;
- for(let depth=2;depth<=4;depth++){
+ for(let depth=1;depth<=AI_MAX_DEPTH;depth++){
   AI_ABORT=false;
   const res=searchRoot(depth);
   if(!AI_ABORT&&res.move){
@@ -1026,23 +1026,11 @@ function localAiTurn(){
  commitMove(chosen);
 }
 
-async function aiTurn(){
+function aiTurn(){
  if(gameOver||turn!=="g")return;
- // Real Fairy-Stockfish for the standard Capablanca rule set.
- if(variant()==="classic"){
-  if(document.getElementById("engineText"))
-   document.getElementById("engineText").textContent="Fairy‑Stockfish думає…";
-  const m=await fairyBestMove();
-  if(m){
-   if(document.getElementById("engineText"))
-    updateStrengthStatus();
-   commitMove(m); return;
-  }
- }
- // Author variants (king-knight / emergency escape / both) require custom
- // engine legality, so v5 deliberately keeps the tested local search for them.
- if(document.getElementById("engineText"))
-  updateStrengthStatus();
+ // v5.3 reliability mode: always use the built-in engine.
+ // This guarantees that the computer answers on iPhone.
+ updateStrengthStatus();
  localAiTurn();
 }
 
