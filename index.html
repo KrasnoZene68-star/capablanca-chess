@@ -55,7 +55,7 @@ button{cursor:pointer}
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v4.2.2 STABLE · виправлено хід ШІ</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v4.3 STABLE · вибір сторони</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -269,6 +269,13 @@ function variant(){return variantEl.value}
 function humanSide(){return humanSideEl.value}
 function aiSide(){return humanSide()==="r"?"g":"r"}
 function isHumanTurn(){return modeEl.value!=="ai"||turn===humanSide()}
+function updateSideLabels(){
+ const txt=`Ви (${humanSide()==="r"?"червоні":"зелені"}) проти комп’ютера`;
+ for(const sel of [modeEl,mobileMode]){
+  const opt=[...sel.options].find(o=>o.value==="ai");
+  if(opt)opt.textContent=txt;
+ }
+}
 
 function strengthLevel(){
  const n=parseInt(strengthEl.value||"4",10);
@@ -489,7 +496,7 @@ function render(){
  const checked=inCheck(state,turn);
  turnStatus.innerHTML=`<b style="color:${turn==="r"?"#ff6b63":"#86c964"}">Хід: ${who}${checked?" — ШАХ":""}</b>`;
  mobileTurn.innerHTML=`<b>Хід: ${who}${checked?" — ШАХ":""}</b>`;
- subStatus.textContent=modeEl.value==="ai"?(turn==="r"?"Ви граєте за червоних":"Хід комп’ютера"):"Двоє гравців";
+ subStatus.textContent=modeEl.value==="ai"?(turn===humanSide()?`Ваш хід (${humanSide()==="r"?"червоні":"зелені"})`:`Хід комп’ютера (${aiSide()==="r"?"червоні":"зелені"})`):"Двоє гравців";
  mobileState.textContent = checked ? "Король під шахом" : "A = слон+кінь · C = тура+кінь";
 }
 
@@ -520,6 +527,7 @@ function renderMoves(){
 
 function onSquare(e){
  if(gameOver||pendingPromotion)return;
+ if(modeEl.value==="ai"&&!isHumanTurn())return;
  const r=+e.currentTarget.dataset.r,c=+e.currentTarget.dataset.c;
  if(selected){
   const m=legal.find(x=>x.tr===r&&x.tc===c);
@@ -539,6 +547,11 @@ function commitMove(m){
  state=res.s; epSquare=res.ep; lastMove=m; selected=null; legal=[];
  const arrived=state[m.tr][m.tc];
  if(arrived.t==="P"&&(m.tr===0||m.tr===7)){
+  if(modeEl.value==="ai"&&arrived.c===aiSide()){
+   arrived.t="Q";
+   finishTurn(noteBase+"=Q");
+   return;
+  }
   pendingPromotion={m,noteBase,color:arrived.c};
   promoOverlay.classList.add("show");
   render();
@@ -809,22 +822,20 @@ function minimax(s,color,depth,alpha,beta,rootColor,ep,ply=0){
  }
 }
 
-function searchRoot(depth){
- const moves=orderedMoves(state,"g",epSquare);
+function searchRoot(depth,rootColor){
+ const opp=enemy(rootColor);
+ const moves=orderedMoves(state,rootColor,epSquare);
  let best=-Infinity,bestMove=moves[0]||null;
  for(const m of moves){
   if(performance.now()>AI_DEADLINE){AI_ABORT=true;break}
   const res=applyMove(state,m,epSquare,true);
-  let score=minimax(res.s,"r",depth-1,-Infinity,Infinity,"g",res.ep,1);
+  let score=minimax(res.s,opp,depth-1,-Infinity,Infinity,rootColor,res.ep,1);
 
-  // Strategic tie-breakers, deliberately small compared with a pawn (100).
-  if(inCheck(res.s,"r"))score+=7;
+  if(inCheck(res.s,opp))score+=7;
   if(m.special==="castleL"||m.special==="castleR")score+=10;
 
-  // Strongly discourage obviously bad trades: moving a high-value piece onto an
-  // attacked square without adequate support.
   const moved=res.s[m.tr][m.tc];
-  if(moved&&moved.t!=="K"&&attacksSquare(res.s,"r",m.tr,m.tc)&&!attacksSquare(res.s,"g",m.tr,m.tc)){
+  if(moved&&moved.t!=="K"&&attacksSquare(res.s,opp,m.tr,m.tc)&&!attacksSquare(res.s,rootColor,m.tr,m.tc)){
    score-=Math.min(90,VAL[moved.t]*0.12);
   }
 
@@ -833,59 +844,27 @@ function searchRoot(depth){
  return {move:bestMove,score:best};
 }
 
-function aiTurnGreen(){
- const moves=orderedMoves(state,"g",epSquare);
+function aiTurn(){
+ if(gameOver||modeEl.value!=="ai"||turn!==aiSide())return;
+ const color=aiSide();
+ const moves=orderedMoves(state,color,epSquare);
  if(!moves.length){checkGameEnd();return}
 
  const p=strengthProfile();
  AI_DEADLINE=performance.now()+p.time;
-
- let chosen=moves[0], completedDepth=0;
+ let chosen=moves[0];
  for(let depth=1;depth<=p.depth;depth++){
   AI_ABORT=false;
-  const res=searchRoot(depth);
-  if(!AI_ABORT&&res.move){
-   chosen=res.move;
-   completedDepth=depth;
-  }else break;
+  const res=searchRoot(depth,color);
+  if(!AI_ABORT&&res.move)chosen=res.move; else break;
  }
 
- // On the first levels the computer occasionally chooses another plausible
- // ordered move. This creates human-like weakness without breaking the rules.
- if(p.slip>0 && moves.length>1 && Math.random()<p.slip){
+ if(p.slip>0&&moves.length>1&&Math.random()<p.slip){
   const n=Math.min(p.window,moves.length);
   chosen=moves[Math.floor(Math.random()*n)];
  }
-
  updateStrengthStatus();
  commitMove(chosen);
-}
-
-
-function swapColorsBoard(b){
- return b.map(row=>row.map(p=>p?{...p,c:p.c==="r"?"g":"r"}:null));
-}
-function aiTurn(){
- if(gameOver||modeEl.value!=="ai"||turn!==aiSide())return;
- if(aiSide()==="g"){aiTurnGreen();return}
- const realState=state, realTurn=turn, realEp=epSquare;
- state=swapColorsBoard(realState); turn="g";
- try{
-  const moves=orderedMoves(state,"g",epSquare);
-  if(!moves.length){state=realState;turn=realTurn;epSquare=realEp;checkGameEnd();return}
-  const p=strengthProfile(); AI_DEADLINE=performance.now()+p.time;
-  let chosen=moves[0];
-  for(let depth=1;depth<=p.depth;depth++){
-   AI_ABORT=false; const res=searchRoot(depth);
-   if(!AI_ABORT&&res.move)chosen=res.move; else break;
-  }
-  if(p.slip>0&&moves.length>1&&Math.random()<p.slip){
-   const n=Math.min(p.window,moves.length);
-   chosen=moves[Math.floor(Math.random()*n)];
-  }
-  state=realState;turn=realTurn;epSquare=realEp;
-  updateStrengthStatus();commitMove(chosen);
- }catch(e){state=realState;turn=realTurn;epSquare=realEp;console.error(e)}
 }
 
 document.querySelectorAll(".sq").forEach(s=>s.addEventListener("click",onSquare));
@@ -906,8 +885,8 @@ mobileStrength.addEventListener("change",()=>{
  updateStrengthStatus();
 });
 
-humanSideEl.addEventListener("change",()=>{mobileHumanSide.value=humanSideEl.value;reset()});
-mobileHumanSide.addEventListener("change",()=>{humanSideEl.value=mobileHumanSide.value;reset()});
+humanSideEl.addEventListener("change",()=>{mobileHumanSide.value=humanSideEl.value;updateSideLabels();reset()});
+mobileHumanSide.addEventListener("change",()=>{humanSideEl.value=mobileHumanSide.value;updateSideLabels();reset()});
 variantEl.addEventListener("change",()=>{mobileVariant.value=variantEl.value;reset()});
 mobileVariant.addEventListener("change",()=>{variantEl.value=mobileVariant.value;reset()});
 modeEl.addEventListener("change",()=>{mobileMode.value=modeEl.value;reset()});
@@ -923,6 +902,7 @@ document.querySelectorAll("[data-promo]").forEach(btn=>btn.addEventListener("cli
  finishTurn(note);
 }));
 
+updateSideLabels();
 reset();
 updateStrengthStatus();
 })();
