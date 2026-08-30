@@ -55,7 +55,7 @@ button{cursor:pointer}
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v4.2 STABLE · вибір сторони</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v4.2.2 STABLE · виправлено хід ШІ</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -552,7 +552,7 @@ function finishTurn(note){
  turn=enemy(turn);
  render(); renderMoves();
  if(checkGameEnd())return;
- if(modeEl.value==="ai"&&turn==="g"&&!gameOver){
+ if(modeEl.value==="ai"&&turn===aiSide()&&!gameOver){
   setTimeout(aiTurn,120);
  }
 }
