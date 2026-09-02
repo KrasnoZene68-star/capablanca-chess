@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Шахи Капабланки 10×8</title>
+<title>Шахи Капабланки 10×8 · 3D</title>
 <style>
 :root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
 *{box-sizing:border-box}
@@ -30,7 +30,73 @@ button{cursor:pointer}
 .coordF,.coordR{position:absolute;font-size:9px;font-weight:800;opacity:.75;z-index:6}
 .coordF{right:2px;bottom:1px} .coordR{left:2px;top:1px}
 .piece{width:86%;height:86%;display:flex;align-items:center;justify-content:center;z-index:2}
+
 .piece svg{width:100%;height:100%;display:block} .pawn svg{width:67%;height:67%}
+
+/* v4.4: 3D presentation layer. Game geometry/rules stay unchanged. */
+:root{--tilt:40deg;--untilt:-40deg}
+.boardShell{
+ perspective:1400px;
+ perspective-origin:50% 42%;
+ overflow:visible;
+ transition:.25s ease;
+}
+.board,.sq,.piece{transform-style:preserve-3d}
+body.view3d .boardShell{
+ padding:12px 14px 34px;
+ background:linear-gradient(145deg,#17120f,#0e0d0c 62%,#25201c);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 16px 38px rgba(0,0,0,.46);
+}
+body.view3d .board{
+ transform:rotateX(var(--tilt)) scale(.965);
+ transform-origin:50% 100%;
+ border:3px solid #20150e;
+ border-radius:7px;
+ box-shadow:
+   0 10px 0 #4a2e1d,
+   0 16px 0 #26170f,
+   0 30px 30px rgba(0,0,0,.52);
+ overflow:visible;
+}
+body.view3d .sq{
+ border:1px solid rgba(60,35,18,.13);
+}
+body.view3d .light{
+ background:linear-gradient(145deg,#f0ddba,#d9bf91);
+}
+body.view3d .dark{
+ background:linear-gradient(145deg,#b98f66,#8f6847);
+}
+body.view3d .piece{
+ transform:rotateX(var(--untilt)) translateZ(18px) translateY(-2%);
+ transform-origin:50% 78%;
+ filter:drop-shadow(0 8px 4px rgba(0,0,0,.48));
+ transition:transform .12s ease,filter .12s ease;
+}
+body.view3d .sq.selected .piece{
+ transform:rotateX(var(--untilt)) translateZ(27px) translateY(-5%) scale(1.04);
+ filter:drop-shadow(0 12px 5px rgba(0,0,0,.6));
+}
+body.view3d .piece svg{
+ filter:saturate(1.08) contrast(1.06) drop-shadow(0 2px 0 rgba(255,255,255,.12));
+}
+body.view3d .coordF,body.view3d .coordR{
+ text-shadow:0 1px 2px rgba(0,0,0,.45);
+}
+.viewHint{
+ font-size:12px;color:#9fd37e;line-height:1.35;padding:2px 2px 0;
+}
+@media(max-width:900px){
+ :root{--tilt:29deg;--untilt:-29deg}
+ body.view3d .boardShell{padding:7px 5px 23px}
+ body.view3d .board{
+   transform:rotateX(var(--tilt)) scale(.985);
+   box-shadow:0 6px 0 #4a2e1d,0 10px 0 #26170f,0 20px 22px rgba(0,0,0,.48);
+ }
+ body.view3d .piece{transform:rotateX(var(--untilt)) translateZ(10px) translateY(-1%)}
+ body.view3d .sq.selected .piece{transform:rotateX(var(--untilt)) translateZ(16px) translateY(-3%) scale(1.03)}
+}
+
 .mobileControls{display:none}
 .mobileRow{display:grid;grid-template-columns:minmax(0,1fr) 130px;gap:6px;margin-top:6px}
 .mobileInfo{display:none;margin-top:8px;background:#262626;border:1px solid #333;border-radius:10px;padding:10px;font-size:13px;color:#ccc}
@@ -55,7 +121,7 @@ button{cursor:pointer}
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v4.3 STABLE · вибір сторони</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v4.4 3D · автоповорот дошки</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -75,6 +141,11 @@ button{cursor:pointer}
      <option value="7">7 · Майстер</option>
      <option value="8">8 · Гросмейстер</option>
     </select><select id="humanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
+    <select id="viewMode">
+     <option value="3d" selected>Вигляд: 3D</option>
+     <option value="2d">Вигляд: 2D</option>
+    </select>
+    <div class="viewHint">3D — перспективна дошка й об’ємний рельєф фігур. При виборі зелених дошка автоматично повертається.</div>
 
     <select id="mode">
      <option value="ai">Ви (червоні) проти комп’ютера</option>
@@ -104,6 +175,10 @@ button{cursor:pointer}
      <option value="7">7 · Майстер</option>
      <option value="8">8 · Гросмейстер</option>
     </select><select id="mobileHumanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
+    <select id="mobileViewMode">
+     <option value="3d" selected>Вигляд: 3D</option>
+     <option value="2d">Вигляд: 2D</option>
+    </select>
 
     <div class="mobileRow">
      <select id="mobileMode"><option value="ai">Ви (червоні) проти комп’ютера</option><option value="two">Двоє гравців</option></select>
@@ -252,6 +327,7 @@ const boardEl=document.getElementById("board");
 const variantEl=document.getElementById("variant"), mobileVariant=document.getElementById("mobileVariant");
 const strengthEl=document.getElementById("strength"), mobileStrength=document.getElementById("mobileStrength");
 const humanSideEl=document.getElementById("humanSide"), mobileHumanSide=document.getElementById("mobileHumanSide");
+const viewModeEl=document.getElementById("viewMode"), mobileViewMode=document.getElementById("mobileViewMode");
 const modeEl=document.getElementById("mode"), mobileMode=document.getElementById("mobileMode");
 const turnStatus=document.getElementById("turnStatus"), subStatus=document.getElementById("subStatus");
 const mobileTurn=document.getElementById("mobileTurn"), mobileState=document.getElementById("mobileState");
@@ -268,7 +344,39 @@ let state, turn, selected, legal, lastMove, history, gameOver, epSquare, pending
 function variant(){return variantEl.value}
 function humanSide(){return humanSideEl.value}
 function aiSide(){return humanSide()==="r"?"g":"r"}
+
 function isHumanTurn(){return modeEl.value!=="ai"||turn===humanSide()}
+
+function applyViewMode(){
+ const is3d=viewModeEl.value==="3d";
+ document.body.classList.toggle("view3d",is3d);
+ mobileViewMode.value=viewModeEl.value;
+}
+
+function applyBoardOrientation(){
+ const flipped=humanSide()==="g";
+ boardEl.classList.toggle("flipped",flipped);
+
+ const squares=[...boardEl.querySelectorAll(".sq")];
+ squares.sort((a,b)=>{
+  const ar=+a.dataset.r, ac=+a.dataset.c;
+  const br=+b.dataset.r, bc=+b.dataset.c;
+  if(!flipped) return ar===br ? ac-bc : ar-br;
+  return ar===br ? bc-ac : br-ar;
+ });
+ squares.forEach(sq=>boardEl.appendChild(sq));
+
+ // Coordinates always follow what the player sees:
+ // files on the nearest edge, ranks on the left edge.
+ [...boardEl.children].forEach((sq,i)=>{
+  const r=+sq.dataset.r,c=+sq.dataset.c;
+  const vr=Math.floor(i/10),vc=i%10;
+  const f=sq.querySelector(".coordF"), rr=sq.querySelector(".coordR");
+  if(f) f.textContent=vr===7 ? FILES[c] : "";
+  if(rr) rr.textContent=vc===0 ? String(8-r) : "";
+ });
+}
+
 function updateSideLabels(){
  const txt=`Ви (${humanSide()==="r"?"червоні":"зелені"}) проти комп’ютера`;
  for(const sel of [modeEl,mobileMode]){
@@ -316,6 +424,8 @@ function initialState(){
 }
 
 function reset(){
+ applyViewMode();
+ applyBoardOrientation();
  state=initialState(); turn="r"; selected=null; legal=[]; lastMove=null; history=[]; gameOver=false; epSquare=null; pendingPromotion=null;
  resultOverlay.classList.remove("show"); promoOverlay.classList.remove("show"); render(); renderMoves();
  if(modeEl.value==="ai"&&aiSide()==="r")setTimeout(aiTurn,250);
@@ -477,8 +587,8 @@ function legalForSquare(r,c){
 
 function render(){
  const checkKing=inCheck(state,turn)?findKing(state,turn):null;
- [...boardEl.children].forEach((sq,i)=>{
-  const r=Math.floor(i/10),c=i%10;
+ [...boardEl.children].forEach((sq)=>{
+  const r=+sq.dataset.r,c=+sq.dataset.c;
   sq.classList.remove("selected","legal","capture","last","check");
   if(selected&&selected.r===r&&selected.c===c)sq.classList.add("selected");
   const lm=legal.find(m=>m.tr===r&&m.tc===c);
@@ -885,6 +995,10 @@ mobileStrength.addEventListener("change",()=>{
  updateStrengthStatus();
 });
 
+
+viewModeEl.addEventListener("change",()=>{mobileViewMode.value=viewModeEl.value;applyViewMode()});
+mobileViewMode.addEventListener("change",()=>{viewModeEl.value=mobileViewMode.value;applyViewMode()});
+
 humanSideEl.addEventListener("change",()=>{mobileHumanSide.value=humanSideEl.value;updateSideLabels();reset()});
 mobileHumanSide.addEventListener("change",()=>{humanSideEl.value=mobileHumanSide.value;updateSideLabels();reset()});
 variantEl.addEventListener("change",()=>{mobileVariant.value=variantEl.value;reset()});
@@ -903,6 +1017,7 @@ document.querySelectorAll("[data-promo]").forEach(btn=>btn.addEventListener("cli
 }));
 
 updateSideLabels();
+applyViewMode();
 reset();
 updateStrengthStatus();
 })();
