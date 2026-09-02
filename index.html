@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Шахи Капабланки 10×8 · v5.0 3D N1/N2</title>
+<title>Шахи Капабланки 10×8 · TRUE 3D N1/N2</title>
 <style>
 :root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
 *{box-sizing:border-box}
@@ -118,42 +118,40 @@ body.view3d .coordF,body.view3d .coordR{
  .boardShell{padding:3px}
 }
 
-/* v5.0 N1/N2 piece rendering */
-body.view3d .piece{
- width:92%; height:110%;
- top:-9%; left:4%;
+/* v5.1 TRUE 3D */
+#threeBoard{
+ display:none;
+ width:100%;
+ aspect-ratio:10/7.45;
+ min-height:360px;
+ border-radius:12px;
+ overflow:hidden;
+ background:
+   radial-gradient(circle at 50% 18%,rgba(255,255,255,.07),transparent 35%),
+   linear-gradient(#171717,#0d0d0d);
+ box-shadow:0 18px 45px rgba(0,0,0,.45);
+ touch-action:none;
 }
-body.view3d .pawn{
- width:66%; height:80%;
- top:10%; left:17%;
+#threeBoard canvas{display:block;width:100%!important;height:100%!important}
+body.true3d #threeBoard{display:block}
+body.true3d #board{display:none}
+body.true3d .boardShell{
+ padding:10px;
+ background:linear-gradient(145deg,#171310,#0d0c0b);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 16px 38px rgba(0,0,0,.46);
 }
-body.view3d .piece svg{
- overflow:visible;
- filter:drop-shadow(0 8px 4px rgba(0,0,0,.48));
-}
-body.view3d .piece .piece-shadow{
- opacity:.32;
-}
-body.view3d .piece .shine{
- opacity:.46;
-}
-body.view3d .piece .rim{
- opacity:.72;
-}
-body.view3d .piece-set-n2 svg{
- transform:scale(1.02);
- transform-origin:50% 70%;
-}
+.true3dNote{font-size:12px;line-height:1.38;color:#a8d992}
 @media(max-width:900px){
- body.view3d .piece{width:94%;height:112%;left:3%;top:-10%}
- body.view3d .pawn{width:68%;height:82%;left:16%;top:9%}
+ #threeBoard{min-height:300px;aspect-ratio:10/8.1}
+ body.true3d .boardShell{padding:5px}
 }
 
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.0 3D · N1 / N2</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.1 TRUE 3D · N1 / N2</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -174,14 +172,14 @@ body.view3d .piece-set-n2 svg{
      <option value="8">8 · Гросмейстер</option>
     </select><select id="humanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
     <select id="viewMode">
-     <option value="3d" selected>Вигляд: 3D</option>
+     <option value="3d" selected>Вигляд: TRUE 3D</option>
      <option value="2d">Вигляд: 2D</option>
     </select>
     <select id="pieceSet">
      <option value="n1" selected>Фігури: N1</option>
      <option value="n2">Фігури: N2</option>
     </select>
-    <div class="viewHint">3D — перспективна дошка й об’ємний рельєф фігур. При виборі зелених дошка автоматично повертається.</div>
+    <div class="viewHint true3dNote">TRUE 3D — реальні WebGL mesh-фігури, освітлення, матеріал і тіні. N1/N2 перемикаються окремо. При виборі зелених камера автоматично переходить на їхній бік.</div>
 
     <select id="mode">
      <option value="ai">Ви (червоні) проти комп’ютера</option>
@@ -189,7 +187,7 @@ body.view3d .piece-set-n2 svg{
     </select>
     <div class="statusbox"><div id="turnStatus"><b style="color:#ff6b63">Хід: червоних</b></div><div id="subStatus" style="font-size:12px;color:#999">Ви граєте за червоних</div></div>
     <button id="newGame">↻ Нова партія</button>
-    <div class="legend"><b style="color:#ff6b63">C</b> = канцлер (тура + кінь)<br><b style="color:#ff6b63">A</b> = архієпископ (слон + кінь)<br><br>Пішаки менші. N1: кінські мотиви у C/A. N2: історизований масивний стиль. Геометрія клітин незмінна.</div>
+    <div class="legend"><b style="color:#ff6b63">C</b> = канцлер (тура + кінь)<br><b style="color:#ff6b63">A</b> = архієпископ (слон + кінь)<br><br>TRUE 3D: N1 — канцлер з кінською головою над зубчастим коміром, архієпископ = слон + кінська голова. N2 — високий канцлер із 6 глибокими зубцями; архієпископ з пласким «наполеонівським» верхом.</div>
    </div>
   </aside>
 
@@ -212,7 +210,7 @@ body.view3d .piece-set-n2 svg{
      <option value="8">8 · Гросмейстер</option>
     </select><select id="mobileHumanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
     <select id="mobileViewMode">
-     <option value="3d" selected>Вигляд: 3D</option>
+     <option value="3d" selected>Вигляд: TRUE 3D</option>
      <option value="2d">Вигляд: 2D</option>
     </select>
     <select id="mobilePieceSet">
@@ -227,6 +225,7 @@ body.view3d .piece-set-n2 svg{
    </div>
 
    <div class="boardShell">
+    <div id="threeBoard" aria-label="3D шахівниця"></div>
     <div id="board" class="board">
 <div class="sq light" data-r="0" data-c="0"><span class="coordF"></span><span class="coordR">8</span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M25 18h13v10h12V18h12v10h13V18h10v25H15V18z"/><path d="M27 43h46l-5 30H32z"/><path d="M23 74h54l6 10H17z"/></g></svg></div></div>
 <div class="sq dark" data-r="0" data-c="1"><span class="coordF"></span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M27 78h50L72 63c-5-14-5-28-20-36l4-12-20 8-10 21 12 5 10-6 4 7c-12 5-17 15-25 28z"/><circle cx="46" cy="33" r="2.6" fill="#111" stroke="none"/></g></svg></div></div>
@@ -369,6 +368,7 @@ const strengthEl=document.getElementById("strength"), mobileStrength=document.ge
 const humanSideEl=document.getElementById("humanSide"), mobileHumanSide=document.getElementById("mobileHumanSide");
 const viewModeEl=document.getElementById("viewMode"), mobileViewMode=document.getElementById("mobileViewMode");
 const pieceSetEl=document.getElementById("pieceSet"), mobilePieceSet=document.getElementById("mobilePieceSet");
+const threeBoardEl=document.getElementById("threeBoard");
 const modeEl=document.getElementById("mode"), mobileMode=document.getElementById("mobileMode");
 const turnStatus=document.getElementById("turnStatus"), subStatus=document.getElementById("subStatus");
 const mobileTurn=document.getElementById("mobileTurn"), mobileState=document.getElementById("mobileState");
@@ -385,134 +385,16 @@ let state, turn, selected, legal, lastMove, history, gameOver, epSquare, pending
 function variant(){return variantEl.value}
 function humanSide(){return humanSideEl.value}
 function aiSide(){return humanSide()==="r"?"g":"r"}
-
 function pieceSet(){return pieceSetEl.value}
-
-function pieceSVG3D(color,type,setName){
- const red=color==="r";
- const main=red?"#b51f20":"#246c33";
- const mid=red?"#d33a34":"#398847";
- const light=red?"#f06b5f":"#6dbb70";
- const dark=red?"#671014":"#103c1b";
- const edge=red?"#4f0d10":"#0b2f15";
- const accent=red?"#ffd0c9":"#c8f0ca";
- const horseEye="#121212";
- const id=(red?"r":"g")+type+setName;
-
- const defs=`<defs>
-   <linearGradient id="body${id}" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="${light}"/>
-    <stop offset=".28" stop-color="${mid}"/>
-    <stop offset=".68" stop-color="${main}"/>
-    <stop offset="1" stop-color="${dark}"/>
-   </linearGradient>
-   <linearGradient id="base${id}" x1="0" y1="0" x2="0" y2="1">
-    <stop offset="0" stop-color="${mid}"/>
-    <stop offset="1" stop-color="${dark}"/>
-   </linearGradient>
-   <radialGradient id="glow${id}" cx=".3" cy=".2" r=".8">
-    <stop offset="0" stop-color="#fff" stop-opacity=".72"/>
-    <stop offset=".24" stop-color="#fff" stop-opacity=".16"/>
-    <stop offset="1" stop-color="#fff" stop-opacity="0"/>
-   </radialGradient>
-  </defs>`;
-
- const base=`<ellipse class="piece-shadow" cx="50" cy="89" rx="30" ry="6" fill="#000"/>
-  <path d="M22 76 Q50 70 78 76 L84 84 Q50 92 16 84Z" fill="url(#base${id})" stroke="${edge}" stroke-width="2.4"/>
-  <ellipse cx="50" cy="77" rx="28" ry="6" fill="${mid}" stroke="${edge}" stroke-width="2"/>
-  <ellipse class="shine" cx="42" cy="75" rx="13" ry="2.5" fill="${accent}"/>`;
-
- const stem=`<path d="M36 70 Q40 58 39 48 Q50 43 61 48 Q60 58 64 70Z" fill="url(#body${id})" stroke="${edge}" stroke-width="2.5"/>
-  <path class="shine" d="M42 65 Q44 55 43 49" fill="none" stroke="${accent}" stroke-width="3" stroke-linecap="round"/>`;
-
- function rookTop(){
-  return `<path d="M31 23 L31 15 L39 15 L39 22 L47 22 L47 15 L55 15 L55 22 L63 22 L63 15 L71 15 L71 28
-   Q66 33 64 42 L36 42 Q34 33 29 28Z" fill="url(#body${id})" stroke="${edge}" stroke-width="2.8"/>
-   <ellipse class="shine" cx="42" cy="27" rx="7" ry="11" fill="url(#glow${id})"/>`;
- }
- function knightHead(scale=1, dx=0, dy=0){
-  return `<g transform="translate(${dx} ${dy}) scale(${scale})">
-   <path d="M29 58 Q31 43 38 34 L35 23 L49 16 L63 22 L58 30 Q70 38 68 53
-    Q61 45 52 45 L46 52 L58 58 L61 67 L35 67 Q31 63 29 58Z"
-    fill="url(#body${id})" stroke="${edge}" stroke-width="2.7" stroke-linejoin="round"/>
-   <path class="shine" d="M43 25 Q54 23 59 29" fill="none" stroke="${accent}" stroke-width="3" stroke-linecap="round"/>
-   <circle cx="51" cy="30" r="2.2" fill="${horseEye}"/>
-  </g>`;
- }
- function bishopHead(flat=false){
-  if(flat){
-   return `<path d="M31 42 Q33 28 50 20 Q67 28 69 42 Q62 47 50 48 Q38 47 31 42Z"
-    fill="url(#body${id})" stroke="${edge}" stroke-width="2.7"/>
-    <path d="M31 29 Q50 20 69 29" fill="none" stroke="${edge}" stroke-width="3.2"/>
-    <path class="shine" d="M40 30 Q47 25 54 26" fill="none" stroke="${accent}" stroke-width="3" stroke-linecap="round"/>`;
-  }
-  return `<path d="M50 17 Q65 28 64 42 Q61 51 50 56 Q39 51 36 42 Q35 28 50 17Z"
-    fill="url(#body${id})" stroke="${edge}" stroke-width="2.7"/>
-    <path d="M56 27 L44 43" stroke="${accent}" stroke-width="3.2" stroke-linecap="round"/>
-    <ellipse class="shine" cx="44" cy="31" rx="5" ry="8" fill="url(#glow${id})"/>`;
- }
- function crown(){
-  return `<path d="M27 47 L22 25 L35 35 L43 19 L50 34 L58 18 L66 35 L79 24 L73 48Z"
-   fill="url(#body${id})" stroke="${edge}" stroke-width="2.7" stroke-linejoin="round"/>
-   <circle cx="22" cy="24" r="4" fill="${light}" stroke="${edge}" stroke-width="2"/>
-   <circle cx="43" cy="18" r="4" fill="${light}" stroke="${edge}" stroke-width="2"/>
-   <circle cx="58" cy="17" r="4" fill="${light}" stroke="${edge}" stroke-width="2"/>
-   <circle cx="79" cy="23" r="4" fill="${light}" stroke="${edge}" stroke-width="2"/>
-   <path class="shine" d="M33 37 L41 24" stroke="${accent}" stroke-width="3" stroke-linecap="round"/>`;
- }
- function kingTop(){
-  return `<path d="M48 10 H52 V18 H60 V22 H52 V31 H48 V22 H40 V18 H48Z" fill="${light}" stroke="${edge}" stroke-width="2"/>
-   <path d="M34 48 Q36 35 50 31 Q64 35 66 48 Q61 56 50 57 Q39 56 34 48Z"
-    fill="url(#body${id})" stroke="${edge}" stroke-width="2.7"/>
-   <ellipse class="shine" cx="43" cy="42" rx="5" ry="8" fill="url(#glow${id})"/>`;
- }
- function pawn(){
-  return `<ellipse class="piece-shadow" cx="50" cy="87" rx="27" ry="5" fill="#000"/>
-   <path d="M25 72 Q50 67 75 72 L80 81 Q50 89 20 81Z" fill="url(#base${id})" stroke="${edge}" stroke-width="2.5"/>
-   <path d="M37 69 Q40 55 43 46 H57 Q60 55 63 69Z" fill="url(#body${id})" stroke="${edge}" stroke-width="2.5"/>
-   <circle cx="50" cy="35" r="13" fill="url(#body${id})" stroke="${edge}" stroke-width="2.5"/>
-   <ellipse class="shine" cx="45" cy="31" rx="4.5" ry="6" fill="url(#glow${id})"/>`;
- }
-
- let shape="";
- if(type==="P") shape=pawn();
- else if(type==="R") shape=base+stem+rookTop();
- else if(type==="N") shape=base+knightHead(.95,2,3);
- else if(type==="B") shape=base+stem+bishopHead(false);
- else if(type==="Q") shape=base+stem+crown();
- else if(type==="K") shape=base+stem+kingTop();
- else if(type==="C"){
-   if(setName==="n1"){
-    // N1: horse head emerging from a rook-like crenellated collar.
-    shape=base+`<path d="M29 55 Q50 50 71 55 L68 68 H32Z" fill="url(#body${id})" stroke="${edge}" stroke-width="2.5"/>`
-      +rookTop().replace('M31 23','M31 37').replaceAll('15','29').replaceAll('22','36').replaceAll('28','42').replaceAll('33','47').replaceAll('42','56').replace('cy="27"','cy="41"')
-      +knightHead(.72,14,-7);
-   } else {
-    // N2: tall rounded Chancellor, no horse head, six deep crenellations.
-    shape=base+stem+`<path d="M28 42 L28 24 Q28 18 34 18 H38 V29 H44 V18 H49 V29 H55 V18 H61 V29 H67 V18 H72 Q76 18 76 24 V42
-     Q69 49 65 55 H35 Q31 49 28 42Z" fill="url(#body${id})" stroke="${edge}" stroke-width="2.8"/>
-     <path d="M31 21 Q50 12 73 21" fill="none" stroke="${accent}" stroke-width="3" opacity=".45"/>`;
-   }
- } else if(type==="A"){
-   if(setName==="n1"){
-    // N1: bishop body with a smaller horse head integrated at the crown.
-    shape=base+stem+bishopHead(false)+knightHead(.52,26,-2);
-   } else {
-    // N2: flattened Napoleon-hat crown, no horse head.
-    shape=base+stem+bishopHead(true)+`<path d="M39 38 Q50 33 61 38" fill="none" stroke="${accent}" stroke-width="2.5"/>`;
-   }
- }
-
- return `<svg class="piece3d" viewBox="0 0 100 100" aria-hidden="true">${defs}${shape}</svg>`;
-}
-
 
 function isHumanTurn(){return modeEl.value!=="ai"||turn===humanSide()}
 
 function applyViewMode(){
  const is3d=viewModeEl.value==="3d";
- document.body.classList.toggle("view3d",is3d);
+ document.body.classList.toggle("view3d",false);
+ document.body.classList.toggle("true3d",is3d);
  mobileViewMode.value=viewModeEl.value;
+ if(is3d){ initThree(); requestAnimationFrame(resizeThree); }
 }
 
 function applyBoardOrientation(){
@@ -761,9 +643,7 @@ function render(){
   const p=state[r][c];
   if(p){
    const d=document.createElement("div"); d.className="piece "+(p.t==="P"?"pawn":"");
-   d.classList.add("piece-set-"+pieceSet());
-   d.innerHTML=viewModeEl.value==="3d" ? pieceSVG3D(p.c,p.t,pieceSet()) : (SVG[p.c+p.t]||"");
-   sq.appendChild(d);
+   d.innerHTML=SVG[p.c+p.t]||""; sq.appendChild(d);
   }
  });
  const who=turn==="r"?"червоних":"зелених";
@@ -772,6 +652,7 @@ function render(){
  mobileTurn.innerHTML=`<b>Хід: ${who}${checked?" — ШАХ":""}</b>`;
  subStatus.textContent=modeEl.value==="ai"?(turn===humanSide()?`Ваш хід (${humanSide()==="r"?"червоні":"зелені"})`:`Хід комп’ютера (${aiSide()==="r"?"червоні":"зелені"})`):"Двоє гравців";
  mobileState.textContent = checked ? "Король під шахом" : "A = слон+кінь · C = тура+кінь";
+ if(viewModeEl.value==="3d") renderThree();
 }
 
 function notation(m,p,captured){
@@ -799,10 +680,9 @@ function renderMoves(){
  movesCount.textContent=`Ходів: ${fullMoves}`;
 }
 
-function onSquare(e){
+function chooseSquare(r,c){
  if(gameOver||pendingPromotion)return;
  if(modeEl.value==="ai"&&!isHumanTurn())return;
- const r=+e.currentTarget.dataset.r,c=+e.currentTarget.dataset.c;
  if(selected){
   const m=legal.find(x=>x.tr===r&&x.tc===c);
   if(m){commitMove(m);return}
@@ -811,6 +691,9 @@ function onSquare(e){
  if(p&&p.c===turn){
   selected={r,c}; legal=legalForSquare(r,c); render();
  }else{selected=null;legal=[];render()}
+}
+function onSquare(e){
+ chooseSquare(+e.currentTarget.dataset.r,+e.currentTarget.dataset.c);
 }
 
 function commitMove(m){
@@ -1141,6 +1024,325 @@ function aiTurn(){
  commitMove(chosen);
 }
 
+
+// ========================= TRUE 3D / THREE.JS =========================
+let threeReady=false, scene3, camera3, renderer3, raycaster3, pointer3;
+let boardGroup3, pieceGroup3, labelGroup3, squareMeshes3=[];
+let matLight3, matDark3, matSelected3, matLegal3, matCapture3, matLast3;
+let matRed3,matGreen3;
+const threeSize={w:0,h:0};
+
+function material3(color){
+ return new THREE.MeshPhysicalMaterial({
+  color, metalness:.08, roughness:.24, clearcoat:.72, clearcoatRoughness:.18
+ });
+}
+function woodMat3(color,rough=.48){
+ return new THREE.MeshStandardMaterial({color,roughness:rough,metalness:.02});
+}
+function addShadowFlags3(o){
+ o.traverse(ch=>{if(ch.isMesh){ch.castShadow=true;ch.receiveShadow=true}});
+ return o;
+}
+function cyl3(r1,r2,h,mat,y=0,segments=32){
+ const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,segments),mat);
+ m.position.y=y+h/2; return m;
+}
+function sphere3(r,mat,y=0,sx=1,sy=1,sz=1){
+ const m=new THREE.Mesh(new THREE.SphereGeometry(r,28,18),mat);
+ m.position.y=y; m.scale.set(sx,sy,sz); return m;
+}
+function box3(x,y,z,mat,px=0,py=0,pz=0){
+ const m=new THREE.Mesh(new THREE.BoxGeometry(x,y,z),mat);
+ m.position.set(px,py,pz); return m;
+}
+function lathe3(points,mat,segments=38){
+ const pts=points.map(([r,y])=>new THREE.Vector2(r,y));
+ return new THREE.Mesh(new THREE.LatheGeometry(pts,segments),mat);
+}
+function standardBase3(mat,scale=1){
+ const g=new THREE.Group();
+ const body=lathe3([
+  [0.34,0],[0.42,.08],[0.43,.14],[0.34,.20],
+  [0.28,.25],[0.23,.35],[0.20,.58],[0.24,.70]
+ ],mat);
+ body.scale.setScalar(scale); g.add(body); return g;
+}
+function pawn3(mat){
+ const g=new THREE.Group();
+ g.add(lathe3([[.25,0],[.31,.06],[.27,.12],[.18,.18],[.13,.45],[.16,.53]],mat));
+ g.add(sphere3(.16,mat,.67));
+ return g;
+}
+function rook3(mat){
+ const g=standardBase3(mat);
+ g.add(cyl3(.26,.23,.27,mat,.69));
+ g.add(cyl3(.34,.30,.11,mat,.94));
+ for(let i=0;i<6;i++){
+  const a=i*Math.PI/3;
+  const tooth=box3(.13,.15,.13,mat,Math.cos(a)*.25,1.10,Math.sin(a)*.25);
+  tooth.rotation.y=-a; g.add(tooth);
+ }
+ return g;
+}
+function bishop3(mat){
+ const g=standardBase3(mat);
+ g.add(sphere3(.27,mat,.88,1,.98,1));
+ const cap=new THREE.Mesh(new THREE.ConeGeometry(.22,.36,32),mat); cap.position.y=1.14; g.add(cap);
+ const slit=box3(.055,.30,.40,new THREE.MeshStandardMaterial({color:0x111111}),.08,1.18,.02);
+ slit.rotation.z=-.55; slit.rotation.x=.15; g.add(slit);
+ return g;
+}
+function queen3(mat){
+ const g=standardBase3(mat);
+ g.add(cyl3(.27,.22,.22,mat,.70));
+ g.add(cyl3(.31,.29,.08,mat,.91));
+ for(let i=0;i<7;i++){
+  const a=i*Math.PI*2/7;
+  const spike=new THREE.Mesh(new THREE.ConeGeometry(.075,.24,12),mat);
+  spike.position.set(Math.cos(a)*.25,1.11,Math.sin(a)*.25);
+  spike.rotation.z=Math.cos(a)*.18; spike.rotation.x=Math.sin(a)*.18;
+  g.add(spike);
+  g.add(sphere3(.07,mat,1.25,1,1,1).translateX(Math.cos(a)*.25).translateZ(Math.sin(a)*.25));
+ }
+ return g;
+}
+function king3(mat){
+ const g=standardBase3(mat);
+ g.add(sphere3(.25,mat,.93,1,.9,1));
+ g.add(box3(.09,.38,.09,mat,0,1.30,0));
+ g.add(box3(.30,.09,.09,mat,0,1.38,0));
+ return g;
+}
+function knightHead3(mat,scale=1){
+ const shape=new THREE.Shape();
+ shape.moveTo(-.24,-.35);
+ shape.bezierCurveTo(-.20,-.10,-.14,.10,-.02,.24);
+ shape.lineTo(-.12,.48);
+ shape.bezierCurveTo(.12,.42,.30,.31,.34,.12);
+ shape.bezierCurveTo(.44,.02,.45,-.12,.33,-.23);
+ shape.lineTo(.18,-.06);
+ shape.bezierCurveTo(.04,-.12,-.02,-.29,-.05,-.40);
+ shape.closePath();
+ const geo=new THREE.ExtrudeGeometry(shape,{depth:.20,bevelEnabled:true,bevelSize:.035,bevelThickness:.035,bevelSegments:3,curveSegments:12});
+ geo.center();
+ const mesh=new THREE.Mesh(geo,mat);
+ mesh.rotation.x=-Math.PI/2;
+ mesh.rotation.z=-.10;
+ mesh.scale.setScalar(scale);
+ return mesh;
+}
+function knight3(mat){
+ const g=standardBase3(mat);
+ const neck=cyl3(.20,.24,.28,mat,.69); neck.rotation.z=-.08; g.add(neck);
+ const h=knightHead3(mat,.95); h.position.set(0,1.05,.01); g.add(h);
+ return g;
+}
+function n1Chancellor3(mat){
+ const g=standardBase3(mat);
+ // rook-like crenellated collar
+ g.add(cyl3(.28,.24,.23,mat,.69));
+ g.add(cyl3(.34,.30,.10,mat,.89));
+ for(let i=0;i<6;i++){
+  const a=i*Math.PI/3;
+  const t=box3(.12,.14,.12,mat,Math.cos(a)*.25,1.04,Math.sin(a)*.25); t.rotation.y=-a; g.add(t);
+ }
+ const h=knightHead3(mat,.72); h.position.set(0,1.25,.02); g.add(h);
+ return g;
+}
+function n1Archbishop3(mat){
+ const g=standardBase3(mat);
+ g.add(sphere3(.24,mat,.86,1,.92,1));
+ const collar=new THREE.Mesh(new THREE.ConeGeometry(.24,.25,30),mat); collar.position.y=1.04; g.add(collar);
+ const h=knightHead3(mat,.56); h.position.set(0,1.27,.01); g.add(h);
+ return g;
+}
+function n2Chancellor3(mat){
+ const g=standardBase3(mat,1.04);
+ g.add(cyl3(.29,.24,.28,mat,.69));
+ g.add(sphere3(.29,mat,1.00,1,0.48,1));
+ // exactly six deep crenellations around a rounded tall top
+ for(let i=0;i<6;i++){
+  const a=i*Math.PI/3;
+  const t=box3(.15,.22,.15,mat,Math.cos(a)*.25,1.17,Math.sin(a)*.25); t.rotation.y=-a; g.add(t);
+ }
+ return g;
+}
+function n2Archbishop3(mat){
+ const g=standardBase3(mat,1.03);
+ g.add(cyl3(.24,.21,.24,mat,.70));
+ // Napoleon/bicorne hat: flattened, laterally extended top
+ const hatShape=new THREE.Shape();
+ hatShape.moveTo(-.38,-.12); hatShape.quadraticCurveTo(0,.15,.38,-.12);
+ hatShape.quadraticCurveTo(0,.04,-.38,-.12);
+ const hatGeo=new THREE.ExtrudeGeometry(hatShape,{depth:.24,bevelEnabled:true,bevelSize:.035,bevelThickness:.035,bevelSegments:3,curveSegments:18});
+ hatGeo.center();
+ const hat=new THREE.Mesh(hatGeo,mat); hat.rotation.x=-Math.PI/2; hat.position.y=1.15; hat.scale.set(1,.95,1); g.add(hat);
+ return g;
+}
+function pieceMesh3(p){
+ const mat=p.c==="r"?matRed3:matGreen3;
+ let g;
+ if(p.t==="P")g=pawn3(mat);
+ else if(p.t==="R")g=rook3(mat);
+ else if(p.t==="N")g=knight3(mat);
+ else if(p.t==="B")g=bishop3(mat);
+ else if(p.t==="Q")g=queen3(mat);
+ else if(p.t==="K")g=king3(mat);
+ else if(p.t==="C")g=pieceSet()==="n1"?n1Chancellor3(mat):n2Chancellor3(mat);
+ else if(p.t==="A")g=pieceSet()==="n1"?n1Archbishop3(mat):n2Archbishop3(mat);
+ else g=standardBase3(mat);
+ g.scale.setScalar(p.t==="P"?.72:.78);
+ return addShadowFlags3(g);
+}
+function squarePos3(r,c){return {x:c-4.5,z:r-3.5}}
+function makeTextSprite3(text){
+ const canvas=document.createElement("canvas"); canvas.width=128;canvas.height=128;
+ const x=canvas.getContext("2d"); x.clearRect(0,0,128,128);
+ x.font="700 64px system-ui";x.textAlign="center";x.textBaseline="middle";
+ x.fillStyle="rgba(255,244,220,.95)";x.strokeStyle="rgba(30,20,10,.8)";x.lineWidth=8;
+ x.strokeText(text,64,64);x.fillText(text,64,64);
+ const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
+ const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));
+ sp.scale.set(.44,.44,.44); return sp;
+}
+function rebuildLabels3(){
+ if(!labelGroup3)return;
+ while(labelGroup3.children.length)labelGroup3.remove(labelGroup3.children[0]);
+ const flip=humanSide()==="g";
+ // Files nearest player.
+ for(let screen=0;screen<10;screen++){
+  const c=flip?9-screen:screen;
+  const sp=makeTextSprite3(FILES[c]);
+  sp.position.set(screen-4.5,.09,flip?-4.22:4.22);
+  labelGroup3.add(sp);
+ }
+ // Ranks left edge from player's view.
+ for(let screen=0;screen<8;screen++){
+  const r=flip?7-screen:screen;
+  const sp=makeTextSprite3(String(8-r));
+  sp.position.set(flip?5.25:-5.25,.09,screen-3.5);
+  labelGroup3.add(sp);
+ }
+}
+function initThree(){
+ if(threeReady)return;
+ if(!window.THREE){
+  threeBoardEl.innerHTML='<div style="padding:18px;color:#ffb3ad">3D-бібліотека не завантажилась. Перемкніть «Вигляд: 2D» або перевірте інтернет.</div>';
+  return;
+ }
+ threeReady=true;
+ scene3=new THREE.Scene();
+ scene3.background=new THREE.Color(0x11100f);
+ scene3.fog=new THREE.Fog(0x11100f,14,26);
+ camera3=new THREE.PerspectiveCamera(34,1,.1,60);
+ renderer3=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:"high-performance"});
+ renderer3.setPixelRatio(Math.min(window.devicePixelRatio||1,1.8));
+ renderer3.shadowMap.enabled=true; renderer3.shadowMap.type=THREE.PCFSoftShadowMap;
+ renderer3.outputColorSpace=THREE.SRGBColorSpace;
+ renderer3.toneMapping=THREE.ACESFilmicToneMapping; renderer3.toneMappingExposure=1.15;
+ threeBoardEl.appendChild(renderer3.domElement);
+
+ raycaster3=new THREE.Raycaster(); pointer3=new THREE.Vector2();
+
+ scene3.add(new THREE.HemisphereLight(0xffead0,0x1b2430,1.65));
+ const key=new THREE.DirectionalLight(0xffe5c4,3.2);key.position.set(-5,11,6);key.castShadow=true;
+ key.shadow.mapSize.set(1024,1024); key.shadow.camera.left=-8;key.shadow.camera.right=8;key.shadow.camera.top=8;key.shadow.camera.bottom=-8;
+ scene3.add(key);
+ const rim=new THREE.DirectionalLight(0xc7ddff,1.35);rim.position.set(7,6,-6);scene3.add(rim);
+
+ matLight3=woodMat3(0xe6cfaa,.52); matDark3=woodMat3(0x9b704d,.55);
+ matSelected3=woodMat3(0xd4c44a,.42); matLegal3=woodMat3(0x9bb85c,.44);
+ matCapture3=woodMat3(0xc95d4d,.44); matLast3=woodMat3(0xb0b85b,.48);
+ matRed3=material3(0xa3161e); matGreen3=material3(0x176b39);
+
+ boardGroup3=new THREE.Group(); pieceGroup3=new THREE.Group(); labelGroup3=new THREE.Group();
+ scene3.add(boardGroup3,pieceGroup3,labelGroup3);
+
+ // table/base
+ const base=box3(10.75,.42,8.75,woodMat3(0x4d2d1b,.38),0,-.29,0);base.receiveShadow=true;boardGroup3.add(base);
+ const rimOuter=box3(10.42,.18,8.42,woodMat3(0x6c4227,.34),0,-.03,0);rimOuter.receiveShadow=true;boardGroup3.add(rimOuter);
+
+ squareMeshes3=[];
+ for(let r=0;r<8;r++){
+  squareMeshes3[r]=[];
+  for(let c=0;c<10;c++){
+   const q=new THREE.Mesh(new THREE.BoxGeometry(.985,.10,.985),(r+c)%2?matDark3:matLight3);
+   const p=squarePos3(r,c);q.position.set(p.x,.08,p.z);q.receiveShadow=true;
+   q.userData={r,c,kind:"square"};boardGroup3.add(q);squareMeshes3[r][c]=q;
+  }
+ }
+
+ renderer3.domElement.addEventListener("pointerdown",threePointer,false);
+ window.addEventListener("resize",resizeThree);
+ rebuildLabels3(); resizeThree(); renderThree();
+}
+function resizeThree(){
+ if(!threeReady)return;
+ const rect=threeBoardEl.getBoundingClientRect();
+ const w=Math.max(320,rect.width),h=Math.max(260,rect.height);
+ if(Math.abs(w-threeSize.w)<2&&Math.abs(h-threeSize.h)<2)return;
+ threeSize.w=w;threeSize.h=h;renderer3.setSize(w,h,false);camera3.aspect=w/h;camera3.updateProjectionMatrix();
+ renderThree();
+}
+function positionCamera3(){
+ const flip=humanSide()==="g";
+ const z=flip?-12.0:12.0;
+ camera3.position.set(0,9.2,z);
+ camera3.lookAt(0,.35,0);
+ rebuildLabels3();
+}
+function clearPieces3(){
+ while(pieceGroup3.children.length){
+  const o=pieceGroup3.children.pop();
+  o.traverse(ch=>{
+   if(ch.geometry)ch.geometry.dispose();
+   // Shared materials intentionally not disposed here.
+  });
+ }
+}
+function renderThree(){
+ if(viewModeEl.value!=="3d")return;
+ initThree(); if(!threeReady)return;
+ positionCamera3();
+ clearPieces3();
+
+ const lm=legal||[];
+ for(let r=0;r<8;r++)for(let c=0;c<10;c++){
+  const sq=squareMeshes3[r][c];
+  let m=(r+c)%2?matDark3:matLight3;
+  if(lastMove&&((lastMove.fr===r&&lastMove.fc===c)||(lastMove.tr===r&&lastMove.tc===c)))m=matLast3;
+  if(selected&&selected.r===r&&selected.c===c)m=matSelected3;
+  const dest=lm.find(x=>x.tr===r&&x.tc===c);
+  if(dest)m=state[r][c]?matCapture3:matLegal3;
+  sq.material=m;
+
+  const p=state[r][c]; if(!p)continue;
+  const g=pieceMesh3(p);
+  const pos=squarePos3(r,c);g.position.set(pos.x,.13,pos.z);
+  // Let horse-based tops face the opponent.
+  if(p.c==="g")g.rotation.y=Math.PI;
+  g.userData={r,c,kind:"piece"};
+  g.traverse(ch=>{ch.userData.square={r,c}});
+  pieceGroup3.add(g);
+ }
+ renderer3.render(scene3,camera3);
+}
+function threePointer(ev){
+ if(!threeReady||viewModeEl.value!=="3d")return;
+ const rect=renderer3.domElement.getBoundingClientRect();
+ pointer3.x=((ev.clientX-rect.left)/rect.width)*2-1;
+ pointer3.y=-((ev.clientY-rect.top)/rect.height)*2+1;
+ raycaster3.setFromCamera(pointer3,camera3);
+ const hits=raycaster3.intersectObjects([pieceGroup3,boardGroup3],true);
+ for(const hit of hits){
+  let o=hit.object,rc=null;
+  if(o.userData.square)rc=o.userData.square;
+  else if(Number.isInteger(o.userData.r))rc=o.userData;
+  if(rc){chooseSquare(rc.r,rc.c);return}
+ }
+}
+
 document.querySelectorAll(".sq").forEach(s=>s.addEventListener("click",onSquare));
 document.getElementById("newGame").addEventListener("click",reset);
 document.getElementById("mobileNew").addEventListener("click",reset);
@@ -1163,12 +1365,12 @@ mobileStrength.addEventListener("change",()=>{
 viewModeEl.addEventListener("change",()=>{mobileViewMode.value=viewModeEl.value;applyViewMode();render()});
 mobileViewMode.addEventListener("change",()=>{viewModeEl.value=mobileViewMode.value;applyViewMode();render()});
 
-pieceSetEl.addEventListener("change",()=>{mobilePieceSet.value=pieceSetEl.value;render()});
-mobilePieceSet.addEventListener("change",()=>{pieceSetEl.value=mobilePieceSet.value;render()});
+pieceSetEl.addEventListener("change",()=>{mobilePieceSet.value=pieceSetEl.value;renderThree()});
+mobilePieceSet.addEventListener("change",()=>{pieceSetEl.value=mobilePieceSet.value;renderThree()});
 
 
-humanSideEl.addEventListener("change",()=>{mobileHumanSide.value=humanSideEl.value;updateSideLabels();reset()});
-mobileHumanSide.addEventListener("change",()=>{humanSideEl.value=mobileHumanSide.value;updateSideLabels();reset()});
+humanSideEl.addEventListener("change",()=>{mobileHumanSide.value=humanSideEl.value;updateSideLabels();reset();renderThree()});
+mobileHumanSide.addEventListener("change",()=>{humanSideEl.value=mobileHumanSide.value;updateSideLabels();reset();renderThree()});
 variantEl.addEventListener("change",()=>{mobileVariant.value=variantEl.value;reset()});
 mobileVariant.addEventListener("change",()=>{variantEl.value=mobileVariant.value;reset()});
 modeEl.addEventListener("change",()=>{mobileMode.value=modeEl.value;reset()});
