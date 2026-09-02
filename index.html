@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Шахи Капабланки 10×8 · 3D</title>
+<title>Шахи Капабланки 10×8 · v5.0 3D N1/N2</title>
 <style>
 :root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
 *{box-sizing:border-box}
@@ -117,11 +117,43 @@ body.view3d .coordF,body.view3d .coordR{
  .app{padding:6px}
  .boardShell{padding:3px}
 }
+
+/* v5.0 N1/N2 piece rendering */
+body.view3d .piece{
+ width:92%; height:110%;
+ top:-9%; left:4%;
+}
+body.view3d .pawn{
+ width:66%; height:80%;
+ top:10%; left:17%;
+}
+body.view3d .piece svg{
+ overflow:visible;
+ filter:drop-shadow(0 8px 4px rgba(0,0,0,.48));
+}
+body.view3d .piece .piece-shadow{
+ opacity:.32;
+}
+body.view3d .piece .shine{
+ opacity:.46;
+}
+body.view3d .piece .rim{
+ opacity:.72;
+}
+body.view3d .piece-set-n2 svg{
+ transform:scale(1.02);
+ transform-origin:50% 70%;
+}
+@media(max-width:900px){
+ body.view3d .piece{width:94%;height:112%;left:3%;top:-10%}
+ body.view3d .pawn{width:68%;height:82%;left:16%;top:9%}
+}
+
 </style>
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v4.4 3D · автоповорот дошки</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.0 3D · N1 / N2</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -145,6 +177,10 @@ body.view3d .coordF,body.view3d .coordR{
      <option value="3d" selected>Вигляд: 3D</option>
      <option value="2d">Вигляд: 2D</option>
     </select>
+    <select id="pieceSet">
+     <option value="n1" selected>Фігури: N1</option>
+     <option value="n2">Фігури: N2</option>
+    </select>
     <div class="viewHint">3D — перспективна дошка й об’ємний рельєф фігур. При виборі зелених дошка автоматично повертається.</div>
 
     <select id="mode">
@@ -153,7 +189,7 @@ body.view3d .coordF,body.view3d .coordR{
     </select>
     <div class="statusbox"><div id="turnStatus"><b style="color:#ff6b63">Хід: червоних</b></div><div id="subStatus" style="font-size:12px;color:#999">Ви граєте за червоних</div></div>
     <button id="newGame">↻ Нова партія</button>
-    <div class="legend"><b style="color:#ff6b63">C</b> = канцлер (тура + кінь)<br><b style="color:#ff6b63">A</b> = архієпископ (слон + кінь)<br><br>Пішаки менші. Геометрія клітин незмінна.</div>
+    <div class="legend"><b style="color:#ff6b63">C</b> = канцлер (тура + кінь)<br><b style="color:#ff6b63">A</b> = архієпископ (слон + кінь)<br><br>Пішаки менші. N1: кінські мотиви у C/A. N2: історизований масивний стиль. Геометрія клітин незмінна.</div>
    </div>
   </aside>
 
@@ -178,6 +214,10 @@ body.view3d .coordF,body.view3d .coordR{
     <select id="mobileViewMode">
      <option value="3d" selected>Вигляд: 3D</option>
      <option value="2d">Вигляд: 2D</option>
+    </select>
+    <select id="mobilePieceSet">
+     <option value="n1" selected>Фігури: N1</option>
+     <option value="n2">Фігури: N2</option>
     </select>
 
     <div class="mobileRow">
@@ -328,6 +368,7 @@ const variantEl=document.getElementById("variant"), mobileVariant=document.getEl
 const strengthEl=document.getElementById("strength"), mobileStrength=document.getElementById("mobileStrength");
 const humanSideEl=document.getElementById("humanSide"), mobileHumanSide=document.getElementById("mobileHumanSide");
 const viewModeEl=document.getElementById("viewMode"), mobileViewMode=document.getElementById("mobileViewMode");
+const pieceSetEl=document.getElementById("pieceSet"), mobilePieceSet=document.getElementById("mobilePieceSet");
 const modeEl=document.getElementById("mode"), mobileMode=document.getElementById("mobileMode");
 const turnStatus=document.getElementById("turnStatus"), subStatus=document.getElementById("subStatus");
 const mobileTurn=document.getElementById("mobileTurn"), mobileState=document.getElementById("mobileState");
@@ -344,6 +385,127 @@ let state, turn, selected, legal, lastMove, history, gameOver, epSquare, pending
 function variant(){return variantEl.value}
 function humanSide(){return humanSideEl.value}
 function aiSide(){return humanSide()==="r"?"g":"r"}
+
+function pieceSet(){return pieceSetEl.value}
+
+function pieceSVG3D(color,type,setName){
+ const red=color==="r";
+ const main=red?"#b51f20":"#246c33";
+ const mid=red?"#d33a34":"#398847";
+ const light=red?"#f06b5f":"#6dbb70";
+ const dark=red?"#671014":"#103c1b";
+ const edge=red?"#4f0d10":"#0b2f15";
+ const accent=red?"#ffd0c9":"#c8f0ca";
+ const horseEye="#121212";
+ const id=(red?"r":"g")+type+setName;
+
+ const defs=`<defs>
+   <linearGradient id="body${id}" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="${light}"/>
+    <stop offset=".28" stop-color="${mid}"/>
+    <stop offset=".68" stop-color="${main}"/>
+    <stop offset="1" stop-color="${dark}"/>
+   </linearGradient>
+   <linearGradient id="base${id}" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="${mid}"/>
+    <stop offset="1" stop-color="${dark}"/>
+   </linearGradient>
+   <radialGradient id="glow${id}" cx=".3" cy=".2" r=".8">
+    <stop offset="0" stop-color="#fff" stop-opacity=".72"/>
+    <stop offset=".24" stop-color="#fff" stop-opacity=".16"/>
+    <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+   </radialGradient>
+  </defs>`;
+
+ const base=`<ellipse class="piece-shadow" cx="50" cy="89" rx="30" ry="6" fill="#000"/>
+  <path d="M22 76 Q50 70 78 76 L84 84 Q50 92 16 84Z" fill="url(#base${id})" stroke="${edge}" stroke-width="2.4"/>
+  <ellipse cx="50" cy="77" rx="28" ry="6" fill="${mid}" stroke="${edge}" stroke-width="2"/>
+  <ellipse class="shine" cx="42" cy="75" rx="13" ry="2.5" fill="${accent}"/>`;
+
+ const stem=`<path d="M36 70 Q40 58 39 48 Q50 43 61 48 Q60 58 64 70Z" fill="url(#body${id})" stroke="${edge}" stroke-width="2.5"/>
+  <path class="shine" d="M42 65 Q44 55 43 49" fill="none" stroke="${accent}" stroke-width="3" stroke-linecap="round"/>`;
+
+ function rookTop(){
+  return `<path d="M31 23 L31 15 L39 15 L39 22 L47 22 L47 15 L55 15 L55 22 L63 22 L63 15 L71 15 L71 28
+   Q66 33 64 42 L36 42 Q34 33 29 28Z" fill="url(#body${id})" stroke="${edge}" stroke-width="2.8"/>
+   <ellipse class="shine" cx="42" cy="27" rx="7" ry="11" fill="url(#glow${id})"/>`;
+ }
+ function knightHead(scale=1, dx=0, dy=0){
+  return `<g transform="translate(${dx} ${dy}) scale(${scale})">
+   <path d="M29 58 Q31 43 38 34 L35 23 L49 16 L63 22 L58 30 Q70 38 68 53
+    Q61 45 52 45 L46 52 L58 58 L61 67 L35 67 Q31 63 29 58Z"
+    fill="url(#body${id})" stroke="${edge}" stroke-width="2.7" stroke-linejoin="round"/>
+   <path class="shine" d="M43 25 Q54 23 59 29" fill="none" stroke="${accent}" stroke-width="3" stroke-linecap="round"/>
+   <circle cx="51" cy="30" r="2.2" fill="${horseEye}"/>
+  </g>`;
+ }
+ function bishopHead(flat=false){
+  if(flat){
+   return `<path d="M31 42 Q33 28 50 20 Q67 28 69 42 Q62 47 50 48 Q38 47 31 42Z"
+    fill="url(#body${id})" stroke="${edge}" stroke-width="2.7"/>
+    <path d="M31 29 Q50 20 69 29" fill="none" stroke="${edge}" stroke-width="3.2"/>
+    <path class="shine" d="M40 30 Q47 25 54 26" fill="none" stroke="${accent}" stroke-width="3" stroke-linecap="round"/>`;
+  }
+  return `<path d="M50 17 Q65 28 64 42 Q61 51 50 56 Q39 51 36 42 Q35 28 50 17Z"
+    fill="url(#body${id})" stroke="${edge}" stroke-width="2.7"/>
+    <path d="M56 27 L44 43" stroke="${accent}" stroke-width="3.2" stroke-linecap="round"/>
+    <ellipse class="shine" cx="44" cy="31" rx="5" ry="8" fill="url(#glow${id})"/>`;
+ }
+ function crown(){
+  return `<path d="M27 47 L22 25 L35 35 L43 19 L50 34 L58 18 L66 35 L79 24 L73 48Z"
+   fill="url(#body${id})" stroke="${edge}" stroke-width="2.7" stroke-linejoin="round"/>
+   <circle cx="22" cy="24" r="4" fill="${light}" stroke="${edge}" stroke-width="2"/>
+   <circle cx="43" cy="18" r="4" fill="${light}" stroke="${edge}" stroke-width="2"/>
+   <circle cx="58" cy="17" r="4" fill="${light}" stroke="${edge}" stroke-width="2"/>
+   <circle cx="79" cy="23" r="4" fill="${light}" stroke="${edge}" stroke-width="2"/>
+   <path class="shine" d="M33 37 L41 24" stroke="${accent}" stroke-width="3" stroke-linecap="round"/>`;
+ }
+ function kingTop(){
+  return `<path d="M48 10 H52 V18 H60 V22 H52 V31 H48 V22 H40 V18 H48Z" fill="${light}" stroke="${edge}" stroke-width="2"/>
+   <path d="M34 48 Q36 35 50 31 Q64 35 66 48 Q61 56 50 57 Q39 56 34 48Z"
+    fill="url(#body${id})" stroke="${edge}" stroke-width="2.7"/>
+   <ellipse class="shine" cx="43" cy="42" rx="5" ry="8" fill="url(#glow${id})"/>`;
+ }
+ function pawn(){
+  return `<ellipse class="piece-shadow" cx="50" cy="87" rx="27" ry="5" fill="#000"/>
+   <path d="M25 72 Q50 67 75 72 L80 81 Q50 89 20 81Z" fill="url(#base${id})" stroke="${edge}" stroke-width="2.5"/>
+   <path d="M37 69 Q40 55 43 46 H57 Q60 55 63 69Z" fill="url(#body${id})" stroke="${edge}" stroke-width="2.5"/>
+   <circle cx="50" cy="35" r="13" fill="url(#body${id})" stroke="${edge}" stroke-width="2.5"/>
+   <ellipse class="shine" cx="45" cy="31" rx="4.5" ry="6" fill="url(#glow${id})"/>`;
+ }
+
+ let shape="";
+ if(type==="P") shape=pawn();
+ else if(type==="R") shape=base+stem+rookTop();
+ else if(type==="N") shape=base+knightHead(.95,2,3);
+ else if(type==="B") shape=base+stem+bishopHead(false);
+ else if(type==="Q") shape=base+stem+crown();
+ else if(type==="K") shape=base+stem+kingTop();
+ else if(type==="C"){
+   if(setName==="n1"){
+    // N1: horse head emerging from a rook-like crenellated collar.
+    shape=base+`<path d="M29 55 Q50 50 71 55 L68 68 H32Z" fill="url(#body${id})" stroke="${edge}" stroke-width="2.5"/>`
+      +rookTop().replace('M31 23','M31 37').replaceAll('15','29').replaceAll('22','36').replaceAll('28','42').replaceAll('33','47').replaceAll('42','56').replace('cy="27"','cy="41"')
+      +knightHead(.72,14,-7);
+   } else {
+    // N2: tall rounded Chancellor, no horse head, six deep crenellations.
+    shape=base+stem+`<path d="M28 42 L28 24 Q28 18 34 18 H38 V29 H44 V18 H49 V29 H55 V18 H61 V29 H67 V18 H72 Q76 18 76 24 V42
+     Q69 49 65 55 H35 Q31 49 28 42Z" fill="url(#body${id})" stroke="${edge}" stroke-width="2.8"/>
+     <path d="M31 21 Q50 12 73 21" fill="none" stroke="${accent}" stroke-width="3" opacity=".45"/>`;
+   }
+ } else if(type==="A"){
+   if(setName==="n1"){
+    // N1: bishop body with a smaller horse head integrated at the crown.
+    shape=base+stem+bishopHead(false)+knightHead(.52,26,-2);
+   } else {
+    // N2: flattened Napoleon-hat crown, no horse head.
+    shape=base+stem+bishopHead(true)+`<path d="M39 38 Q50 33 61 38" fill="none" stroke="${accent}" stroke-width="2.5"/>`;
+   }
+ }
+
+ return `<svg class="piece3d" viewBox="0 0 100 100" aria-hidden="true">${defs}${shape}</svg>`;
+}
+
 
 function isHumanTurn(){return modeEl.value!=="ai"||turn===humanSide()}
 
@@ -599,7 +761,9 @@ function render(){
   const p=state[r][c];
   if(p){
    const d=document.createElement("div"); d.className="piece "+(p.t==="P"?"pawn":"");
-   d.innerHTML=SVG[p.c+p.t]||""; sq.appendChild(d);
+   d.classList.add("piece-set-"+pieceSet());
+   d.innerHTML=viewModeEl.value==="3d" ? pieceSVG3D(p.c,p.t,pieceSet()) : (SVG[p.c+p.t]||"");
+   sq.appendChild(d);
   }
  });
  const who=turn==="r"?"червоних":"зелених";
@@ -996,8 +1160,12 @@ mobileStrength.addEventListener("change",()=>{
 });
 
 
-viewModeEl.addEventListener("change",()=>{mobileViewMode.value=viewModeEl.value;applyViewMode()});
-mobileViewMode.addEventListener("change",()=>{viewModeEl.value=mobileViewMode.value;applyViewMode()});
+viewModeEl.addEventListener("change",()=>{mobileViewMode.value=viewModeEl.value;applyViewMode();render()});
+mobileViewMode.addEventListener("change",()=>{viewModeEl.value=mobileViewMode.value;applyViewMode();render()});
+
+pieceSetEl.addEventListener("change",()=>{mobilePieceSet.value=pieceSetEl.value;render()});
+mobilePieceSet.addEventListener("change",()=>{pieceSetEl.value=mobilePieceSet.value;render()});
+
 
 humanSideEl.addEventListener("change",()=>{mobileHumanSide.value=humanSideEl.value;updateSideLabels();reset()});
 mobileHumanSide.addEventListener("change",()=>{humanSideEl.value=mobileHumanSide.value;updateSideLabels();reset()});
