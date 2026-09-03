@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Шахи Капабланки 10×8 · TRUE 3D N1/N2</title>
+<title>Шахи Капабланки 10×8 · v5.2 SELF-CONTAINED 3D</title>
 <style>
 :root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
 *{box-sizing:border-box}
@@ -118,40 +118,46 @@ body.view3d .coordF,body.view3d .coordR{
  .boardShell{padding:3px}
 }
 
-/* v5.1 TRUE 3D */
-#threeBoard{
- display:none;
- width:100%;
- aspect-ratio:10/7.45;
- min-height:360px;
- border-radius:12px;
- overflow:hidden;
- background:
-   radial-gradient(circle at 50% 18%,rgba(255,255,255,.07),transparent 35%),
-   linear-gradient(#171717,#0d0d0d);
- box-shadow:0 18px 45px rgba(0,0,0,.45);
- touch-action:none;
+/* v5.2: standalone WebGL 1.0 board, no CDN */
+#glWrap{
+ display:none;position:relative;width:100%;aspect-ratio:10/7.2;min-height:360px;
+ border-radius:12px;overflow:hidden;background:#11100f;
+ box-shadow:0 16px 38px rgba(0,0,0,.45)
 }
-#threeBoard canvas{display:block;width:100%!important;height:100%!important}
-body.true3d #threeBoard{display:block}
-body.true3d #board{display:none}
-body.true3d .boardShell{
- padding:10px;
- background:linear-gradient(145deg,#171310,#0d0c0b);
- box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 16px 38px rgba(0,0,0,.46);
+body.real3d #glWrap{display:block}
+body.real3d #board{display:none}
+body.real3d .boardShell{
+ padding:8px;background:linear-gradient(145deg,#171310,#0c0b0a);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 16px 38px rgba(0,0,0,.42)
 }
-.true3dNote{font-size:12px;line-height:1.38;color:#a8d992}
+#glBoard{display:block;width:100%;height:100%;touch-action:manipulation}
+#glBottomCoords{
+ position:absolute;left:7.5%;right:7.5%;bottom:1.1%;display:grid;grid-template-columns:repeat(10,1fr);
+ pointer-events:none;color:#f3e1bd;font-weight:800;font-size:clamp(10px,1.3vw,17px);
+ text-align:center;text-shadow:0 1px 2px #000
+}
+#glSideCoords{
+ position:absolute;left:1.2%;top:10%;bottom:10%;display:grid;grid-template-rows:repeat(8,1fr);
+ pointer-events:none;color:#f3e1bd;font-weight:800;font-size:clamp(10px,1.2vw,16px);
+ align-items:center;text-shadow:0 1px 2px #000
+}
+#glFallback{
+ display:none;position:absolute;inset:0;padding:22px;color:#ffb6ae;background:#181818;
+ align-items:center;justify-content:center;text-align:center
+}
+#glWrap.failed #glFallback{display:flex}
 @media(max-width:900px){
- #threeBoard{min-height:300px;aspect-ratio:10/8.1}
- body.true3d .boardShell{padding:5px}
+ #glWrap{min-height:290px;aspect-ratio:10/8.15}
+ body.real3d .boardShell{padding:4px}
+ #glBottomCoords{left:8%;right:6%;bottom:.5%}
+ #glSideCoords{left:.5%;top:12%;bottom:9%}
 }
 
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.1 TRUE 3D · N1 / N2</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.2 SELF-CONTAINED 3D · N1 / N2</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -172,14 +178,14 @@ body.true3d .boardShell{
      <option value="8">8 · Гросмейстер</option>
     </select><select id="humanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
     <select id="viewMode">
-     <option value="3d" selected>Вигляд: TRUE 3D</option>
+     <option value="3d" selected>Вигляд: 3D</option>
      <option value="2d">Вигляд: 2D</option>
     </select>
     <select id="pieceSet">
      <option value="n1" selected>Фігури: N1</option>
      <option value="n2">Фігури: N2</option>
     </select>
-    <div class="viewHint true3dNote">TRUE 3D — реальні WebGL mesh-фігури, освітлення, матеріал і тіні. N1/N2 перемикаються окремо. При виборі зелених камера автоматично переходить на їхній бік.</div>
+    <div class="viewHint">SELF-CONTAINED 3D — без зовнішніх бібліотек. N1/N2. При виборі зелених камера автоматично переходить на їхній бік.</div>
 
     <select id="mode">
      <option value="ai">Ви (червоні) проти комп’ютера</option>
@@ -187,7 +193,7 @@ body.true3d .boardShell{
     </select>
     <div class="statusbox"><div id="turnStatus"><b style="color:#ff6b63">Хід: червоних</b></div><div id="subStatus" style="font-size:12px;color:#999">Ви граєте за червоних</div></div>
     <button id="newGame">↻ Нова партія</button>
-    <div class="legend"><b style="color:#ff6b63">C</b> = канцлер (тура + кінь)<br><b style="color:#ff6b63">A</b> = архієпископ (слон + кінь)<br><br>TRUE 3D: N1 — канцлер з кінською головою над зубчастим коміром, архієпископ = слон + кінська голова. N2 — високий канцлер із 6 глибокими зубцями; архієпископ з пласким «наполеонівським» верхом.</div>
+    <div class="legend"><b style="color:#ff6b63">C</b> = канцлер (тура + кінь)<br><b style="color:#ff6b63">A</b> = архієпископ (слон + кінь)<br><br>Пішаки менші. Геометрія клітин незмінна.</div>
    </div>
   </aside>
 
@@ -210,7 +216,7 @@ body.true3d .boardShell{
      <option value="8">8 · Гросмейстер</option>
     </select><select id="mobileHumanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
     <select id="mobileViewMode">
-     <option value="3d" selected>Вигляд: TRUE 3D</option>
+     <option value="3d" selected>Вигляд: 3D</option>
      <option value="2d">Вигляд: 2D</option>
     </select>
     <select id="mobilePieceSet">
@@ -225,7 +231,12 @@ body.true3d .boardShell{
    </div>
 
    <div class="boardShell">
-    <div id="threeBoard" aria-label="3D шахівниця"></div>
+    <div id="glWrap">
+      <canvas id="glBoard" aria-label="3D шахівниця Капабланки"></canvas>
+      <div id="glBottomCoords"></div>
+      <div id="glSideCoords"></div>
+      <div id="glFallback">3D недоступне на цьому пристрої — перемкніть «Вигляд: 2D».</div>
+    </div>
     <div id="board" class="board">
 <div class="sq light" data-r="0" data-c="0"><span class="coordF"></span><span class="coordR">8</span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M25 18h13v10h12V18h12v10h13V18h10v25H15V18z"/><path d="M27 43h46l-5 30H32z"/><path d="M23 74h54l6 10H17z"/></g></svg></div></div>
 <div class="sq dark" data-r="0" data-c="1"><span class="coordF"></span><span class="coordR"></span><div class="piece "><svg viewBox="0 0 100 100"><g fill="#2f7d32" stroke="#0d3e18" stroke-width="5"><path d="M27 78h50L72 63c-5-14-5-28-20-36l4-12-20 8-10 21 12 5 10-6 4 7c-12 5-17 15-25 28z"/><circle cx="46" cy="33" r="2.6" fill="#111" stroke="none"/></g></svg></div></div>
@@ -368,7 +379,8 @@ const strengthEl=document.getElementById("strength"), mobileStrength=document.ge
 const humanSideEl=document.getElementById("humanSide"), mobileHumanSide=document.getElementById("mobileHumanSide");
 const viewModeEl=document.getElementById("viewMode"), mobileViewMode=document.getElementById("mobileViewMode");
 const pieceSetEl=document.getElementById("pieceSet"), mobilePieceSet=document.getElementById("mobilePieceSet");
-const threeBoardEl=document.getElementById("threeBoard");
+const glWrap=document.getElementById("glWrap"), glCanvas=document.getElementById("glBoard");
+const glBottomCoords=document.getElementById("glBottomCoords"), glSideCoords=document.getElementById("glSideCoords");
 const modeEl=document.getElementById("mode"), mobileMode=document.getElementById("mobileMode");
 const turnStatus=document.getElementById("turnStatus"), subStatus=document.getElementById("subStatus");
 const mobileTurn=document.getElementById("mobileTurn"), mobileState=document.getElementById("mobileState");
@@ -392,9 +404,9 @@ function isHumanTurn(){return modeEl.value!=="ai"||turn===humanSide()}
 function applyViewMode(){
  const is3d=viewModeEl.value==="3d";
  document.body.classList.toggle("view3d",false);
- document.body.classList.toggle("true3d",is3d);
+ document.body.classList.toggle("real3d",is3d);
  mobileViewMode.value=viewModeEl.value;
- if(is3d){ initThree(); requestAnimationFrame(resizeThree); }
+ if(is3d){ensureGL();resizeGL();renderGL();}
 }
 
 function applyBoardOrientation(){
@@ -468,11 +480,14 @@ function initialState(){
 }
 
 function reset(){
- applyViewMode();
- applyBoardOrientation();
+ // IMPORTANT: initialize game state first. UI/orientation/3D are synchronized only after state exists.
  state=initialState(); turn="r"; selected=null; legal=[]; lastMove=null; history=[]; gameOver=false; epSquare=null; pendingPromotion=null;
- resultOverlay.classList.remove("show"); promoOverlay.classList.remove("show"); render(); renderMoves();
- if(modeEl.value==="ai"&&aiSide()==="r")setTimeout(aiTurn,250);
+ resultOverlay.classList.remove("show"); promoOverlay.classList.remove("show");
+ updateSideLabels();
+ applyBoardOrientation();
+ applyViewMode();
+ render(); renderMoves();
+ if(modeEl.value==="ai"&&aiSide()==="r")setTimeout(()=>{if(!gameOver&&turn===aiSide())aiTurn()},250);
 }
 
 function findKing(s,color){
@@ -652,7 +667,7 @@ function render(){
  mobileTurn.innerHTML=`<b>Хід: ${who}${checked?" — ШАХ":""}</b>`;
  subStatus.textContent=modeEl.value==="ai"?(turn===humanSide()?`Ваш хід (${humanSide()==="r"?"червоні":"зелені"})`:`Хід комп’ютера (${aiSide()==="r"?"червоні":"зелені"})`):"Двоє гравців";
  mobileState.textContent = checked ? "Король під шахом" : "A = слон+кінь · C = тура+кінь";
- if(viewModeEl.value==="3d") renderThree();
+ if(viewModeEl.value==="3d")renderGL();
 }
 
 function notation(m,p,captured){
@@ -692,9 +707,7 @@ function chooseSquare(r,c){
   selected={r,c}; legal=legalForSquare(r,c); render();
  }else{selected=null;legal=[];render()}
 }
-function onSquare(e){
- chooseSquare(+e.currentTarget.dataset.r,+e.currentTarget.dataset.c);
-}
+function onSquare(e){ chooseSquare(+e.currentTarget.dataset.r,+e.currentTarget.dataset.c); }
 
 function commitMove(m){
  const mover=state[m.fr][m.fc];
@@ -1025,322 +1038,237 @@ function aiTurn(){
 }
 
 
-// ========================= TRUE 3D / THREE.JS =========================
-let threeReady=false, scene3, camera3, renderer3, raycaster3, pointer3;
-let boardGroup3, pieceGroup3, labelGroup3, squareMeshes3=[];
-let matLight3, matDark3, matSelected3, matLegal3, matCapture3, matLast3;
-let matRed3,matGreen3;
-const threeSize={w:0,h:0};
+// ======================== SELF-CONTAINED WEBGL 1.0 ========================
+let GL=null,GLP=null,GLReady=false,GLFailed=false;
+let aPos,aNor,uMVP,uModel,uColor,uLight,uEye;
+let projM=new Float32Array(16),viewM=new Float32Array(16),vpM=new Float32Array(16),invVPM=new Float32Array(16);
+let glMeshes={};
 
-function material3(color){
- return new THREE.MeshPhysicalMaterial({
-  color, metalness:.08, roughness:.24, clearcoat:.72, clearcoatRoughness:.18
- });
+function m4Identity(){
+ return new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
 }
-function woodMat3(color,rough=.48){
- return new THREE.MeshStandardMaterial({color,roughness:rough,metalness:.02});
-}
-function addShadowFlags3(o){
- o.traverse(ch=>{if(ch.isMesh){ch.castShadow=true;ch.receiveShadow=true}});
+function m4Mul(a,b){
+ const o=new Float32Array(16);
+ for(let c=0;c<4;c++)for(let r=0;r<4;r++){
+  o[c*4+r]=a[0*4+r]*b[c*4+0]+a[1*4+r]*b[c*4+1]+a[2*4+r]*b[c*4+2]+a[3*4+r]*b[c*4+3];
+ }
  return o;
 }
-function cyl3(r1,r2,h,mat,y=0,segments=32){
- const m=new THREE.Mesh(new THREE.CylinderGeometry(r1,r2,h,segments),mat);
- m.position.y=y+h/2; return m;
+function m4Perspective(fovy,aspect,near,far){
+ const f=1/Math.tan(fovy/2),nf=1/(near-far);
+ return new Float32Array([f/aspect,0,0,0, 0,f,0,0, 0,0,(far+near)*nf,-1, 0,0,2*far*near*nf,0]);
 }
-function sphere3(r,mat,y=0,sx=1,sy=1,sz=1){
- const m=new THREE.Mesh(new THREE.SphereGeometry(r,28,18),mat);
- m.position.y=y; m.scale.set(sx,sy,sz); return m;
+function v3sub(a,b){return[a[0]-b[0],a[1]-b[1],a[2]-b[2]]}
+function v3cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]]}
+function v3norm(v){const d=Math.hypot(...v)||1;return[v[0]/d,v[1]/d,v[2]/d]}
+function m4LookAt(eye,center,up){
+ const z=v3norm(v3sub(eye,center)),x=v3norm(v3cross(up,z)),y=v3cross(z,x);
+ return new Float32Array([
+  x[0],y[0],z[0],0, x[1],y[1],z[1],0, x[2],y[2],z[2],0,
+  -(x[0]*eye[0]+x[1]*eye[1]+x[2]*eye[2]),
+  -(y[0]*eye[0]+y[1]*eye[1]+y[2]*eye[2]),
+  -(z[0]*eye[0]+z[1]*eye[1]+z[2]*eye[2]),1
+ ]);
 }
-function box3(x,y,z,mat,px=0,py=0,pz=0){
- const m=new THREE.Mesh(new THREE.BoxGeometry(x,y,z),mat);
- m.position.set(px,py,pz); return m;
+function m4Translate(x,y,z){const m=m4Identity();m[12]=x;m[13]=y;m[14]=z;return m}
+function m4Scale(x,y,z){const m=m4Identity();m[0]=x;m[5]=y;m[10]=z;return m}
+function m4RotY(a){const c=Math.cos(a),q=Math.sin(a);return new Float32Array([c,0,-q,0,0,1,0,0,q,0,c,0,0,0,0,1])}
+function m4Inv(a){
+ const o=new Float32Array(16),m=a;
+ const b00=m[0]*m[5]-m[1]*m[4],b01=m[0]*m[6]-m[2]*m[4],b02=m[0]*m[7]-m[3]*m[4];
+ const b03=m[1]*m[6]-m[2]*m[5],b04=m[1]*m[7]-m[3]*m[5],b05=m[2]*m[7]-m[3]*m[6];
+ const b06=m[8]*m[13]-m[9]*m[12],b07=m[8]*m[14]-m[10]*m[12],b08=m[8]*m[15]-m[11]*m[12];
+ const b09=m[9]*m[14]-m[10]*m[13],b10=m[9]*m[15]-m[11]*m[13],b11=m[10]*m[15]-m[11]*m[14];
+ let det=b00*b11-b01*b10+b02*b09+b03*b08-b04*b07+b05*b06;if(!det)return m4Identity();det=1/det;
+ o[0]=(m[5]*b11-m[6]*b10+m[7]*b09)*det;o[1]=(-m[1]*b11+m[2]*b10-m[3]*b09)*det;
+ o[2]=(m[13]*b05-m[14]*b04+m[15]*b03)*det;o[3]=(-m[9]*b05+m[10]*b04-m[11]*b03)*det;
+ o[4]=(-m[4]*b11+m[6]*b08-m[7]*b07)*det;o[5]=(m[0]*b11-m[2]*b08+m[3]*b07)*det;
+ o[6]=(-m[12]*b05+m[14]*b02-m[15]*b01)*det;o[7]=(m[8]*b05-m[10]*b02+m[11]*b01)*det;
+ o[8]=(m[4]*b10-m[5]*b08+m[7]*b06)*det;o[9]=(-m[0]*b10+m[1]*b08-m[3]*b06)*det;
+ o[10]=(m[12]*b04-m[13]*b02+m[15]*b00)*det;o[11]=(-m[8]*b04+m[9]*b02-m[11]*b00)*det;
+ o[12]=(-m[4]*b09+m[5]*b07-m[6]*b06)*det;o[13]=(m[0]*b09-m[1]*b07+m[2]*b06)*det;
+ o[14]=(-m[12]*b03+m[13]*b01-m[14]*b00)*det;o[15]=(m[8]*b03-m[9]*b01+m[10]*b00)*det;
+ return o;
 }
-function lathe3(points,mat,segments=38){
- const pts=points.map(([r,y])=>new THREE.Vector2(r,y));
- return new THREE.Mesh(new THREE.LatheGeometry(pts,segments),mat);
-}
-function standardBase3(mat,scale=1){
- const g=new THREE.Group();
- const body=lathe3([
-  [0.34,0],[0.42,.08],[0.43,.14],[0.34,.20],
-  [0.28,.25],[0.23,.35],[0.20,.58],[0.24,.70]
- ],mat);
- body.scale.setScalar(scale); g.add(body); return g;
-}
-function pawn3(mat){
- const g=new THREE.Group();
- g.add(lathe3([[.25,0],[.31,.06],[.27,.12],[.18,.18],[.13,.45],[.16,.53]],mat));
- g.add(sphere3(.16,mat,.67));
- return g;
-}
-function rook3(mat){
- const g=standardBase3(mat);
- g.add(cyl3(.26,.23,.27,mat,.69));
- g.add(cyl3(.34,.30,.11,mat,.94));
- for(let i=0;i<6;i++){
-  const a=i*Math.PI/3;
-  const tooth=box3(.13,.15,.13,mat,Math.cos(a)*.25,1.10,Math.sin(a)*.25);
-  tooth.rotation.y=-a; g.add(tooth);
- }
- return g;
-}
-function bishop3(mat){
- const g=standardBase3(mat);
- g.add(sphere3(.27,mat,.88,1,.98,1));
- const cap=new THREE.Mesh(new THREE.ConeGeometry(.22,.36,32),mat); cap.position.y=1.14; g.add(cap);
- const slit=box3(.055,.30,.40,new THREE.MeshStandardMaterial({color:0x111111}),.08,1.18,.02);
- slit.rotation.z=-.55; slit.rotation.x=.15; g.add(slit);
- return g;
-}
-function queen3(mat){
- const g=standardBase3(mat);
- g.add(cyl3(.27,.22,.22,mat,.70));
- g.add(cyl3(.31,.29,.08,mat,.91));
- for(let i=0;i<7;i++){
-  const a=i*Math.PI*2/7;
-  const spike=new THREE.Mesh(new THREE.ConeGeometry(.075,.24,12),mat);
-  spike.position.set(Math.cos(a)*.25,1.11,Math.sin(a)*.25);
-  spike.rotation.z=Math.cos(a)*.18; spike.rotation.x=Math.sin(a)*.18;
-  g.add(spike);
-  g.add(sphere3(.07,mat,1.25,1,1,1).translateX(Math.cos(a)*.25).translateZ(Math.sin(a)*.25));
- }
- return g;
-}
-function king3(mat){
- const g=standardBase3(mat);
- g.add(sphere3(.25,mat,.93,1,.9,1));
- g.add(box3(.09,.38,.09,mat,0,1.30,0));
- g.add(box3(.30,.09,.09,mat,0,1.38,0));
- return g;
-}
-function knightHead3(mat,scale=1){
- const shape=new THREE.Shape();
- shape.moveTo(-.24,-.35);
- shape.bezierCurveTo(-.20,-.10,-.14,.10,-.02,.24);
- shape.lineTo(-.12,.48);
- shape.bezierCurveTo(.12,.42,.30,.31,.34,.12);
- shape.bezierCurveTo(.44,.02,.45,-.12,.33,-.23);
- shape.lineTo(.18,-.06);
- shape.bezierCurveTo(.04,-.12,-.02,-.29,-.05,-.40);
- shape.closePath();
- const geo=new THREE.ExtrudeGeometry(shape,{depth:.20,bevelEnabled:true,bevelSize:.035,bevelThickness:.035,bevelSegments:3,curveSegments:12});
- geo.center();
- const mesh=new THREE.Mesh(geo,mat);
- mesh.rotation.x=-Math.PI/2;
- mesh.rotation.z=-.10;
- mesh.scale.setScalar(scale);
- return mesh;
-}
-function knight3(mat){
- const g=standardBase3(mat);
- const neck=cyl3(.20,.24,.28,mat,.69); neck.rotation.z=-.08; g.add(neck);
- const h=knightHead3(mat,.95); h.position.set(0,1.05,.01); g.add(h);
- return g;
-}
-function n1Chancellor3(mat){
- const g=standardBase3(mat);
- // rook-like crenellated collar
- g.add(cyl3(.28,.24,.23,mat,.69));
- g.add(cyl3(.34,.30,.10,mat,.89));
- for(let i=0;i<6;i++){
-  const a=i*Math.PI/3;
-  const t=box3(.12,.14,.12,mat,Math.cos(a)*.25,1.04,Math.sin(a)*.25); t.rotation.y=-a; g.add(t);
- }
- const h=knightHead3(mat,.72); h.position.set(0,1.25,.02); g.add(h);
- return g;
-}
-function n1Archbishop3(mat){
- const g=standardBase3(mat);
- g.add(sphere3(.24,mat,.86,1,.92,1));
- const collar=new THREE.Mesh(new THREE.ConeGeometry(.24,.25,30),mat); collar.position.y=1.04; g.add(collar);
- const h=knightHead3(mat,.56); h.position.set(0,1.27,.01); g.add(h);
- return g;
-}
-function n2Chancellor3(mat){
- const g=standardBase3(mat,1.04);
- g.add(cyl3(.29,.24,.28,mat,.69));
- g.add(sphere3(.29,mat,1.00,1,0.48,1));
- // exactly six deep crenellations around a rounded tall top
- for(let i=0;i<6;i++){
-  const a=i*Math.PI/3;
-  const t=box3(.15,.22,.15,mat,Math.cos(a)*.25,1.17,Math.sin(a)*.25); t.rotation.y=-a; g.add(t);
- }
- return g;
-}
-function n2Archbishop3(mat){
- const g=standardBase3(mat,1.03);
- g.add(cyl3(.24,.21,.24,mat,.70));
- // Napoleon/bicorne hat: flattened, laterally extended top
- const hatShape=new THREE.Shape();
- hatShape.moveTo(-.38,-.12); hatShape.quadraticCurveTo(0,.15,.38,-.12);
- hatShape.quadraticCurveTo(0,.04,-.38,-.12);
- const hatGeo=new THREE.ExtrudeGeometry(hatShape,{depth:.24,bevelEnabled:true,bevelSize:.035,bevelThickness:.035,bevelSegments:3,curveSegments:18});
- hatGeo.center();
- const hat=new THREE.Mesh(hatGeo,mat); hat.rotation.x=-Math.PI/2; hat.position.y=1.15; hat.scale.set(1,.95,1); g.add(hat);
- return g;
-}
-function pieceMesh3(p){
- const mat=p.c==="r"?matRed3:matGreen3;
- let g;
- if(p.t==="P")g=pawn3(mat);
- else if(p.t==="R")g=rook3(mat);
- else if(p.t==="N")g=knight3(mat);
- else if(p.t==="B")g=bishop3(mat);
- else if(p.t==="Q")g=queen3(mat);
- else if(p.t==="K")g=king3(mat);
- else if(p.t==="C")g=pieceSet()==="n1"?n1Chancellor3(mat):n2Chancellor3(mat);
- else if(p.t==="A")g=pieceSet()==="n1"?n1Archbishop3(mat):n2Archbishop3(mat);
- else g=standardBase3(mat);
- g.scale.setScalar(p.t==="P"?.72:.78);
- return addShadowFlags3(g);
-}
-function squarePos3(r,c){return {x:c-4.5,z:r-3.5}}
-function makeTextSprite3(text){
- const canvas=document.createElement("canvas"); canvas.width=128;canvas.height=128;
- const x=canvas.getContext("2d"); x.clearRect(0,0,128,128);
- x.font="700 64px system-ui";x.textAlign="center";x.textBaseline="middle";
- x.fillStyle="rgba(255,244,220,.95)";x.strokeStyle="rgba(30,20,10,.8)";x.lineWidth=8;
- x.strokeText(text,64,64);x.fillText(text,64,64);
- const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;
- const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false}));
- sp.scale.set(.44,.44,.44); return sp;
-}
-function rebuildLabels3(){
- if(!labelGroup3)return;
- while(labelGroup3.children.length)labelGroup3.remove(labelGroup3.children[0]);
- const flip=humanSide()==="g";
- // Files nearest player.
- for(let screen=0;screen<10;screen++){
-  const c=flip?9-screen:screen;
-  const sp=makeTextSprite3(FILES[c]);
-  sp.position.set(screen-4.5,.09,flip?-4.22:4.22);
-  labelGroup3.add(sp);
- }
- // Ranks left edge from player's view.
- for(let screen=0;screen<8;screen++){
-  const r=flip?7-screen:screen;
-  const sp=makeTextSprite3(String(8-r));
-  sp.position.set(flip?5.25:-5.25,.09,screen-3.5);
-  labelGroup3.add(sp);
- }
-}
-function initThree(){
- if(threeReady)return;
- if(!window.THREE){
-  threeBoardEl.innerHTML='<div style="padding:18px;color:#ffb3ad">3D-бібліотека не завантажилась. Перемкніть «Вигляд: 2D» або перевірте інтернет.</div>';
-  return;
- }
- threeReady=true;
- scene3=new THREE.Scene();
- scene3.background=new THREE.Color(0x11100f);
- scene3.fog=new THREE.Fog(0x11100f,14,26);
- camera3=new THREE.PerspectiveCamera(34,1,.1,60);
- renderer3=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:"high-performance"});
- renderer3.setPixelRatio(Math.min(window.devicePixelRatio||1,1.8));
- renderer3.shadowMap.enabled=true; renderer3.shadowMap.type=THREE.PCFSoftShadowMap;
- renderer3.outputColorSpace=THREE.SRGBColorSpace;
- renderer3.toneMapping=THREE.ACESFilmicToneMapping; renderer3.toneMappingExposure=1.15;
- threeBoardEl.appendChild(renderer3.domElement);
+function v4mul(m,v){return[
+ m[0]*v[0]+m[4]*v[1]+m[8]*v[2]+m[12]*v[3],
+ m[1]*v[0]+m[5]*v[1]+m[9]*v[2]+m[13]*v[3],
+ m[2]*v[0]+m[6]*v[1]+m[10]*v[2]+m[14]*v[3],
+ m[3]*v[0]+m[7]*v[1]+m[11]*v[2]+m[15]*v[3]
+]}
 
- raycaster3=new THREE.Raycaster(); pointer3=new THREE.Vector2();
-
- scene3.add(new THREE.HemisphereLight(0xffead0,0x1b2430,1.65));
- const key=new THREE.DirectionalLight(0xffe5c4,3.2);key.position.set(-5,11,6);key.castShadow=true;
- key.shadow.mapSize.set(1024,1024); key.shadow.camera.left=-8;key.shadow.camera.right=8;key.shadow.camera.top=8;key.shadow.camera.bottom=-8;
- scene3.add(key);
- const rim=new THREE.DirectionalLight(0xc7ddff,1.35);rim.position.set(7,6,-6);scene3.add(rim);
-
- matLight3=woodMat3(0xe6cfaa,.52); matDark3=woodMat3(0x9b704d,.55);
- matSelected3=woodMat3(0xd4c44a,.42); matLegal3=woodMat3(0x9bb85c,.44);
- matCapture3=woodMat3(0xc95d4d,.44); matLast3=woodMat3(0xb0b85b,.48);
- matRed3=material3(0xa3161e); matGreen3=material3(0x176b39);
-
- boardGroup3=new THREE.Group(); pieceGroup3=new THREE.Group(); labelGroup3=new THREE.Group();
- scene3.add(boardGroup3,pieceGroup3,labelGroup3);
-
- // table/base
- const base=box3(10.75,.42,8.75,woodMat3(0x4d2d1b,.38),0,-.29,0);base.receiveShadow=true;boardGroup3.add(base);
- const rimOuter=box3(10.42,.18,8.42,woodMat3(0x6c4227,.34),0,-.03,0);rimOuter.receiveShadow=true;boardGroup3.add(rimOuter);
-
- squareMeshes3=[];
- for(let r=0;r<8;r++){
-  squareMeshes3[r]=[];
-  for(let c=0;c<10;c++){
-   const q=new THREE.Mesh(new THREE.BoxGeometry(.985,.10,.985),(r+c)%2?matDark3:matLight3);
-   const p=squarePos3(r,c);q.position.set(p.x,.08,p.z);q.receiveShadow=true;
-   q.userData={r,c,kind:"square"};boardGroup3.add(q);squareMeshes3[r][c]=q;
+function meshBuilder(){
+ return {p:[],n:[],i:[]};
+}
+function addBox(g,sx,sy,sz,cx,cy,cz){
+ const base=g.p.length/3;
+ const P=[[-1,-1,1],[1,-1,1],[1,1,1],[-1,1,1],[-1,-1,-1],[-1,1,-1],[1,1,-1],[1,-1,-1],
+          [-1,1,-1],[-1,1,1],[1,1,1],[1,1,-1],[-1,-1,-1],[1,-1,-1],[1,-1,1],[-1,-1,1],
+          [1,-1,-1],[1,1,-1],[1,1,1],[1,-1,1],[-1,-1,-1],[-1,-1,1],[-1,1,1],[-1,1,-1]];
+ const N=[[0,0,1],[0,0,1],[0,0,1],[0,0,1],[0,0,-1],[0,0,-1],[0,0,-1],[0,0,-1],
+          [0,1,0],[0,1,0],[0,1,0],[0,1,0],[0,-1,0],[0,-1,0],[0,-1,0],[0,-1,0],
+          [1,0,0],[1,0,0],[1,0,0],[1,0,0],[-1,0,0],[-1,0,0],[-1,0,0],[-1,0,0]];
+ P.forEach((v,k)=>{g.p.push(cx+v[0]*sx/2,cy+v[1]*sy/2,cz+v[2]*sz/2);g.n.push(...N[k])});
+ for(let f=0;f<6;f++){const q=base+f*4;g.i.push(q,q+1,q+2,q,q+2,q+3)}
+}
+function addLathe(g,profile,seg=22){
+ const base=g.p.length/3;
+ for(let j=0;j<=seg;j++){
+  const a=j/seg*Math.PI*2,ca=Math.cos(a),sa=Math.sin(a);
+  for(let k=0;k<profile.length;k++){
+   const [r,y]=profile[k];
+   let dr,dy;
+   if(k===0){dr=profile[1][0]-r;dy=profile[1][1]-y}
+   else if(k===profile.length-1){dr=r-profile[k-1][0];dy=y-profile[k-1][1]}
+   else{dr=profile[k+1][0]-profile[k-1][0];dy=profile[k+1][1]-profile[k-1][1]}
+   const nx=dy*ca,nz=dy*sa,ny=-dr,d=Math.hypot(nx,ny,nz)||1;
+   g.p.push(r*ca,y,r*sa);g.n.push(nx/d,ny/d,nz/d);
   }
  }
-
- renderer3.domElement.addEventListener("pointerdown",threePointer,false);
- window.addEventListener("resize",resizeThree);
- rebuildLabels3(); resizeThree(); renderThree();
-}
-function resizeThree(){
- if(!threeReady)return;
- const rect=threeBoardEl.getBoundingClientRect();
- const w=Math.max(320,rect.width),h=Math.max(260,rect.height);
- if(Math.abs(w-threeSize.w)<2&&Math.abs(h-threeSize.h)<2)return;
- threeSize.w=w;threeSize.h=h;renderer3.setSize(w,h,false);camera3.aspect=w/h;camera3.updateProjectionMatrix();
- renderThree();
-}
-function positionCamera3(){
- const flip=humanSide()==="g";
- const z=flip?-12.0:12.0;
- camera3.position.set(0,9.2,z);
- camera3.lookAt(0,.35,0);
- rebuildLabels3();
-}
-function clearPieces3(){
- while(pieceGroup3.children.length){
-  const o=pieceGroup3.children.pop();
-  o.traverse(ch=>{
-   if(ch.geometry)ch.geometry.dispose();
-   // Shared materials intentionally not disposed here.
-  });
+ const m=profile.length;
+ for(let j=0;j<seg;j++)for(let k=0;k<m-1;k++){
+  const a=base+j*m+k,b=a+m,c=b+1,d=a+1;g.i.push(a,b,c,a,c,d);
  }
 }
-function renderThree(){
- if(viewModeEl.value!=="3d")return;
- initThree(); if(!threeReady)return;
- positionCamera3();
- clearPieces3();
-
- const lm=legal||[];
+function addSphere(g,r,cy,sy=1){
+ const base=g.p.length/3,la=10,lo=18;
+ for(let y=0;y<=la;y++){const v=y/la,ph=v*Math.PI;
+  for(let x=0;x<=lo;x++){const u=x/lo,th=u*Math.PI*2,nx=Math.sin(ph)*Math.cos(th),ny=Math.cos(ph),nz=Math.sin(ph)*Math.sin(th);
+   g.p.push(r*nx,cy+r*ny*sy,r*nz);g.n.push(nx,ny,nz);
+  }}
+ for(let y=0;y<la;y++)for(let x=0;x<lo;x++){const a=base+y*(lo+1)+x,b=a+lo+1;g.i.push(a,b,a+1,b,b+1,a+1)}
+}
+function addCone(g,r,h,cy,seg=22){
+ addLathe(g,[[r,cy],[r*.88,cy+h*.2],[0,cy+h]],seg);
+}
+function addHorse(g,scale=1,cy=.7){
+ // Extruded stylized horse head, clearly distinct from ordinary bishop/rook.
+ const pts=[[-.24,-.30],[-.20,-.02],[-.10,.18],[-.17,.42],[.02,.36],[.15,.30],[.28,.12],[.33,-.05],[.20,-.20],[.08,-.10],[.02,-.28]];
+ const z=.12*scale,base=g.p.length/3;
+ for(const side of [-1,1])for(const [x,y] of pts){g.p.push(x*scale,cy+y*scale,side*z);g.n.push(0,0,side)}
+ const L=pts.length;
+ for(let side=0;side<2;side++)for(let k=1;k<L-1;k++)g.i.push(base+side*L,base+side*L+k,base+side*L+k+1);
+ for(let k=0;k<L;k++){const q=(k+1)%L,a=base+k,b=base+q,c=base+L+q,d=base+L+k;g.i.push(a,b,c,a,c,d)}
+}
+function makePieceGeom(type,set){
+ const g=meshBuilder();
+ const base=[[.34,0],[.43,.07],[.44,.13],[.34,.19],[.28,.24],[.22,.34],[.20,.55],[.25,.66]];
+ if(type==="P"){addLathe(g,[[.22,0],[.30,.07],[.24,.14],[.14,.22],[.12,.45],[.17,.53]],18);addSphere(g,.15,.67)}
+ else if(type==="R"){addLathe(g,base,22);addLathe(g,[[.25,.66],[.28,.82],[.33,.88]],22);for(let i=0;i<6;i++){let a=i*Math.PI/3;addBox(g,.13,.18,.13,Math.cos(a)*.25,1.0,Math.sin(a)*.25)}}
+ else if(type==="N"){addLathe(g,base,22);addHorse(g,.95,.80)}
+ else if(type==="B"){addLathe(g,base,22);addSphere(g,.22,.82,1.15);addCone(g,.20,.32,.93)}
+ else if(type==="Q"){addLathe(g,base,22);addLathe(g,[[.25,.66],[.29,.80],[.30,.86]],22);for(let i=0;i<7;i++){let a=i*Math.PI*2/7;addCone(g,.055,.25,.89);}}
+ else if(type==="K"){addLathe(g,base,22);addSphere(g,.22,.84,.85);addBox(g,.08,.34,.08,0,1.20,0);addBox(g,.28,.08,.08,0,1.29,0)}
+ else if(type==="C"&&set==="n1"){
+  addLathe(g,base,22);addLathe(g,[[.25,.66],[.29,.79],[.34,.85]],22);
+  for(let i=0;i<6;i++){let a=i*Math.PI/3;addBox(g,.13,.14,.13,Math.cos(a)*.25,.96,Math.sin(a)*.25)}
+  addHorse(g,.70,1.06);
+ } else if(type==="A"&&set==="n1"){
+  addLathe(g,base,22);addSphere(g,.23,.82,1.18);addCone(g,.20,.22,.94);addHorse(g,.55,1.05);
+ } else if(type==="C"&&set==="n2"){
+  addLathe(g,[[.35,0],[.44,.08],[.43,.15],[.31,.25],[.30,.77],[.34,.88],[.34,.98]],24);
+  addSphere(g,.22,1.04,.45);
+  for(let i=0;i<6;i++){let a=i*Math.PI/3;addBox(g,.14,.22,.14,Math.cos(a)*.26,1.14,Math.sin(a)*.26)}
+ } else if(type==="A"&&set==="n2"){
+  addLathe(g,base,22);addLathe(g,[[.23,.66],[.24,.88]],22);
+  // Napoleon-style flattened lateral top
+  addBox(g,.78,.11,.32,0,1.03,0);addSphere(g,.34,1.04,.28);
+ } else {addLathe(g,base,22)}
+ return g;
+}
+function compileMesh(g){
+ const gl=GL,mesh={count:g.i.length};
+ mesh.pb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,mesh.pb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(g.p),gl.STATIC_DRAW);
+ mesh.nb=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,mesh.nb);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(g.n),gl.STATIC_DRAW);
+ mesh.ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,mesh.ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint16Array(g.i),gl.STATIC_DRAW);
+ return mesh;
+}
+function shader(type,src){const sh=GL.createShader(type);GL.shaderSource(sh,src);GL.compileShader(sh);if(!GL.getShaderParameter(sh,GL.COMPILE_STATUS))throw new Error(GL.getShaderInfoLog(sh));return sh}
+function ensureGL(){
+ if(GLReady||GLFailed)return GLReady;
+ try{
+  GL=glCanvas.getContext("webgl",{antialias:true,alpha:false,preserveDrawingBuffer:false})||glCanvas.getContext("experimental-webgl");
+  if(!GL)throw new Error("WebGL unavailable");
+  const vs=`attribute vec3 aPos;attribute vec3 aNor;uniform mat4 uMVP;uniform mat4 uModel;varying vec3 vN;varying vec3 vP;
+  void main(){vec4 wp=uModel*vec4(aPos,1.0);vP=wp.xyz;vN=mat3(uModel)*aNor;gl_Position=uMVP*vec4(aPos,1.0);}`;
+  const fs=`precision mediump float;uniform vec3 uColor;uniform vec3 uLight;uniform vec3 uEye;varying vec3 vN;varying vec3 vP;
+  void main(){vec3 N=normalize(vN),L=normalize(uLight-vP),V=normalize(uEye-vP),H=normalize(L+V);
+   float d=max(dot(N,L),0.0),sp=pow(max(dot(N,H),0.0),42.0);
+   vec3 c=uColor*(0.28+0.72*d)+vec3(0.75)*sp+vec3(0.05);
+   gl_FragColor=vec4(c,1.0);}`;
+  GLP=GL.createProgram();GL.attachShader(GLP,shader(GL.VERTEX_SHADER,vs));GL.attachShader(GLP,shader(GL.FRAGMENT_SHADER,fs));GL.linkProgram(GLP);
+  if(!GL.getProgramParameter(GLP,GL.LINK_STATUS))throw new Error(GL.getProgramInfoLog(GLP));
+  GL.useProgram(GLP);
+  aPos=GL.getAttribLocation(GLP,"aPos");aNor=GL.getAttribLocation(GLP,"aNor");
+  uMVP=GL.getUniformLocation(GLP,"uMVP");uModel=GL.getUniformLocation(GLP,"uModel");uColor=GL.getUniformLocation(GLP,"uColor");
+  uLight=GL.getUniformLocation(GLP,"uLight");uEye=GL.getUniformLocation(GLP,"uEye");
+  GL.enableVertexAttribArray(aPos);GL.enableVertexAttribArray(aNor);GL.enable(GL.DEPTH_TEST);GL.enable(GL.CULL_FACE);
+  // static geometries
+  const board=meshBuilder();addBox(board,10.6,.34,8.6,0,-.20,0);glMeshes.board=compileMesh(board);
+  const sq=meshBuilder();addBox(sq,.99,.08,.99,0,.02,0);glMeshes.sq=compileMesh(sq);
+  for(const set of ["n1","n2"])for(const t of ["P","R","N","B","Q","K","C","A"])glMeshes[set+t]=compileMesh(makePieceGeom(t,set));
+  glCanvas.addEventListener("pointerup",glPointer);
+  window.addEventListener("resize",resizeGL);
+  GLReady=true;glWrap.classList.remove("failed");return true;
+ }catch(e){console.error(e);GLFailed=true;glWrap.classList.add("failed");return false}
+}
+function resizeGL(){
+ if(!ensureGL())return;
+ const r=glWrap.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,1.6);
+ const w=Math.max(320,Math.round(r.width*dpr)),h=Math.max(260,Math.round(r.height*dpr));
+ if(glCanvas.width!==w||glCanvas.height!==h){glCanvas.width=w;glCanvas.height=h}
+ GL.viewport(0,0,w,h);
+}
+function drawMesh(mesh,model,color){
+ GL.bindBuffer(GL.ARRAY_BUFFER,mesh.pb);GL.vertexAttribPointer(aPos,3,GL.FLOAT,false,0,0);
+ GL.bindBuffer(GL.ARRAY_BUFFER,mesh.nb);GL.vertexAttribPointer(aNor,3,GL.FLOAT,false,0,0);
+ GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER,mesh.ib);
+ const mvp=m4Mul(vpM,model);GL.uniformMatrix4fv(uMVP,false,mvp);GL.uniformMatrix4fv(uModel,false,model);GL.uniform3fv(uColor,color);
+ GL.drawElements(GL.TRIANGLES,mesh.count,GL.UNSIGNED_SHORT,0);
+}
+function setupCameraGL(){
+ const flip=humanSide()==="g",eye=flip?[0,8.2,-11.8]:[0,8.2,11.8];
+ projM=m4Perspective(35*Math.PI/180,glCanvas.width/glCanvas.height,.1,40);
+ viewM=m4LookAt(eye,[0,.25,0],[0,1,0]);vpM=m4Mul(projM,viewM);invVPM=m4Inv(vpM);
+ GL.uniform3fv(uEye,eye);GL.uniform3fv(uLight,[-4,10,6]);
+ const files=flip?[...FILES].reverse():[...FILES];
+ const ranks=flip?["1","2","3","4","5","6","7","8"]:["8","7","6","5","4","3","2","1"];
+ glBottomCoords.innerHTML=files.map(x=>`<span>${x}</span>`).join("");
+ glSideCoords.innerHTML=ranks.map(x=>`<span>${x}</span>`).join("");
+}
+function renderGL(){
+ if(viewModeEl.value!=="3d"||!state||!ensureGL())return;
+ resizeGL();setupCameraGL();
+ GL.clearColor(.055,.05,.045,1);GL.clear(GL.COLOR_BUFFER_BIT|GL.DEPTH_BUFFER_BIT);
+ drawMesh(glMeshes.board,m4Identity(),new Float32Array([.23,.12,.065]));
  for(let r=0;r<8;r++)for(let c=0;c<10;c++){
-  const sq=squareMeshes3[r][c];
-  let m=(r+c)%2?matDark3:matLight3;
-  if(lastMove&&((lastMove.fr===r&&lastMove.fc===c)||(lastMove.tr===r&&lastMove.tc===c)))m=matLast3;
-  if(selected&&selected.r===r&&selected.c===c)m=matSelected3;
-  const dest=lm.find(x=>x.tr===r&&x.tc===c);
-  if(dest)m=state[r][c]?matCapture3:matLegal3;
-  sq.material=m;
-
-  const p=state[r][c]; if(!p)continue;
-  const g=pieceMesh3(p);
-  const pos=squarePos3(r,c);g.position.set(pos.x,.13,pos.z);
-  // Let horse-based tops face the opponent.
-  if(p.c==="g")g.rotation.y=Math.PI;
-  g.userData={r,c,kind:"piece"};
-  g.traverse(ch=>{ch.userData.square={r,c}});
-  pieceGroup3.add(g);
+  let col=(r+c)%2?[.46,.30,.19]:[.78,.66,.47];
+  if(lastMove&&((lastMove.fr===r&&lastMove.fc===c)||(lastMove.tr===r&&lastMove.tc===c)))col=[.56,.58,.25];
+  if(selected&&selected.r===r&&selected.c===c)col=[.67,.60,.18];
+  const lm=legal&&legal.find(m=>m.tr===r&&m.tc===c);if(lm)col=state[r][c]?[.66,.22,.20]:[.38,.54,.22];
+  drawMesh(glMeshes.sq,m4Translate(c-4.5,0,r-3.5),new Float32Array(col));
  }
- renderer3.render(scene3,camera3);
+ const set=pieceSet();
+ for(let r=0;r<8;r++)for(let c=0;c<10;c++){
+  const p=state[r][c];if(!p)continue;
+  let model=m4Translate(c-4.5,.08,r-3.5);
+  if(p.c==="g")model=m4Mul(model,m4RotY(Math.PI));
+  const sc=p.t==="P"?.72:.78;model=m4Mul(model,m4Scale(sc,sc,sc));
+  const color=p.c==="r"?new Float32Array([.62,.035,.045]):new Float32Array([.035,.34,.12]);
+  drawMesh(glMeshes[set+p.t],model,color);
+ }
 }
-function threePointer(ev){
- if(!threeReady||viewModeEl.value!=="3d")return;
- const rect=renderer3.domElement.getBoundingClientRect();
- pointer3.x=((ev.clientX-rect.left)/rect.width)*2-1;
- pointer3.y=-((ev.clientY-rect.top)/rect.height)*2+1;
- raycaster3.setFromCamera(pointer3,camera3);
- const hits=raycaster3.intersectObjects([pieceGroup3,boardGroup3],true);
- for(const hit of hits){
-  let o=hit.object,rc=null;
-  if(o.userData.square)rc=o.userData.square;
-  else if(Number.isInteger(o.userData.r))rc=o.userData;
-  if(rc){chooseSquare(rc.r,rc.c);return}
- }
+function glPointer(ev){
+ if(!state||gameOver||pendingPromotion||viewModeEl.value!=="3d")return;
+ const rect=glCanvas.getBoundingClientRect();
+ const nx=(ev.clientX-rect.left)/rect.width*2-1,ny=1-(ev.clientY-rect.top)/rect.height*2;
+ const p0=v4mul(invVPM,[nx,ny,-1,1]),p1=v4mul(invVPM,[nx,ny,1,1]);
+ for(const p of [p0,p1]){p[0]/=p[3];p[1]/=p[3];p[2]/=p[3]}
+ const dy=p1[1]-p0[1];if(Math.abs(dy)<1e-6)return;
+ const t=(.05-p0[1])/dy;if(t<0)return;
+ const x=p0[0]+(p1[0]-p0[0])*t,z=p0[2]+(p1[2]-p0[2])*t;
+ const c=Math.floor(x+5),r=Math.floor(z+4);
+ if(inside(r,c))chooseSquare(r,c);
 }
 
 document.querySelectorAll(".sq").forEach(s=>s.addEventListener("click",onSquare));
@@ -1364,13 +1292,11 @@ mobileStrength.addEventListener("change",()=>{
 
 viewModeEl.addEventListener("change",()=>{mobileViewMode.value=viewModeEl.value;applyViewMode();render()});
 mobileViewMode.addEventListener("change",()=>{viewModeEl.value=mobileViewMode.value;applyViewMode();render()});
+pieceSetEl.addEventListener("change",()=>{mobilePieceSet.value=pieceSetEl.value;renderGL()});
+mobilePieceSet.addEventListener("change",()=>{pieceSetEl.value=mobilePieceSet.value;renderGL()});
 
-pieceSetEl.addEventListener("change",()=>{mobilePieceSet.value=pieceSetEl.value;renderThree()});
-mobilePieceSet.addEventListener("change",()=>{pieceSetEl.value=mobilePieceSet.value;renderThree()});
-
-
-humanSideEl.addEventListener("change",()=>{mobileHumanSide.value=humanSideEl.value;updateSideLabels();reset();renderThree()});
-mobileHumanSide.addEventListener("change",()=>{humanSideEl.value=mobileHumanSide.value;updateSideLabels();reset();renderThree()});
+humanSideEl.addEventListener("change",()=>{mobileHumanSide.value=humanSideEl.value;updateSideLabels();reset()});
+mobileHumanSide.addEventListener("change",()=>{humanSideEl.value=mobileHumanSide.value;updateSideLabels();reset()});
 variantEl.addEventListener("change",()=>{mobileVariant.value=variantEl.value;reset()});
 mobileVariant.addEventListener("change",()=>{variantEl.value=mobileVariant.value;reset()});
 modeEl.addEventListener("change",()=>{mobileMode.value=modeEl.value;reset()});
@@ -1386,10 +1312,15 @@ document.querySelectorAll("[data-promo]").forEach(btn=>btn.addEventListener("cli
  finishTurn(note);
 }));
 
-updateSideLabels();
-applyViewMode();
-reset();
+// Deterministic first-load initialization: no color-toggle workaround required.
+mobileVariant.value=variantEl.value;
+mobileStrength.value=strengthEl.value;
+mobileHumanSide.value=humanSideEl.value;
+mobileMode.value=modeEl.value;
+mobileViewMode.value=viewModeEl.value;
+mobilePieceSet.value=pieceSetEl.value;
 updateStrengthStatus();
+reset();
 })();
 </script>
 </body>
