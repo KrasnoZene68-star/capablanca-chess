@@ -167,11 +167,24 @@ body.real3d .boardShell{
 .glCoord.file{font-size:clamp(11px,1.35vw,18px)}
 .glCoord.rank{font-size:clamp(10px,1.2vw,16px)}
 
+
+.cameraControls{
+ display:grid;gap:8px;margin-top:8px;padding:10px;
+ border:1px solid rgba(255,255,255,.08);border-radius:10px;background:#252525;
+}
+.cameraControls label{font-size:13px;color:#d8d8d8;display:grid;gap:4px}
+.cameraControls input[type="range"]{width:100%}
+.cameraControls button{
+ width:100%;padding:9px 10px;border-radius:8px;border:1px solid #555;
+ background:#303030;color:#f4f4f4;font:inherit
+}
+body:not(.real3d) .cameraControls{display:none}
+
 </style>
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.6 TRUE MESH · N1 / N2</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.7 3D CAMERA · ZOOM + ANGLE</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -199,6 +212,15 @@ body.real3d .boardShell{
      <option value="n1" selected>Фігури: N1</option>
      <option value="n2">Фігури: N2</option>
     </select>
+    <div id="cameraControls" class="cameraControls">
+      <label>Масштаб 3D
+        <input id="zoom3d" type="range" min="70" max="145" value="100" step="1">
+      </label>
+      <label>Ракурс камери
+        <input id="angle3d" type="range" min="18" max="58" value="36" step="1">
+      </label>
+      <button id="resetCamera3d" type="button">Початковий ракурс</button>
+    </div>
     <div class="viewHint">TRUE MESH 3D — готові замкнені 3D-моделі N1/N2, вбудовані у файл. При виборі зелених камера автоматично переходить на їхній бік.</div>
 
     <select id="mode">
@@ -237,6 +259,15 @@ body.real3d .boardShell{
      <option value="n1" selected>Фігури: N1</option>
      <option value="n2">Фігури: N2</option>
     </select>
+    <div id="mobileCameraControls" class="cameraControls mobileCameraControls">
+      <label>Масштаб 3D
+        <input id="mobileZoom3d" type="range" min="70" max="145" value="100" step="1">
+      </label>
+      <label>Ракурс
+        <input id="mobileAngle3d" type="range" min="18" max="58" value="36" step="1">
+      </label>
+      <button id="mobileResetCamera3d" type="button">Початковий ракурс</button>
+    </div>
 
     <div class="mobileRow">
      <select id="mobileMode"><option value="ai">Ви (червоні) проти комп’ютера</option><option value="two">Двоє гравців</option></select>
@@ -394,6 +425,9 @@ const viewModeEl=document.getElementById("viewMode"), mobileViewMode=document.ge
 const pieceSetEl=document.getElementById("pieceSet"), mobilePieceSet=document.getElementById("mobilePieceSet");
 const glWrap=document.getElementById("glWrap"), glCanvas=document.getElementById("glBoard");
 const glCoordLayer=document.getElementById("glCoordLayer");
+const zoom3dEl=document.getElementById("zoom3d"), angle3dEl=document.getElementById("angle3d"), resetCamera3dEl=document.getElementById("resetCamera3d");
+const mobileZoom3d=document.getElementById("mobileZoom3d"), mobileAngle3d=document.getElementById("mobileAngle3d"), mobileResetCamera3d=document.getElementById("mobileResetCamera3d");
+
 const modeEl=document.getElementById("mode"), mobileMode=document.getElementById("mobileMode");
 const turnStatus=document.getElementById("turnStatus"), subStatus=document.getElementById("subStatus");
 const mobileTurn=document.getElementById("mobileTurn"), mobileState=document.getElementById("mobileState");
@@ -1243,11 +1277,41 @@ function drawMesh(mesh,model,color){
  const mvp=m4Mul(vpM,model);GL.uniformMatrix4fv(uMVP,false,mvp);GL.uniformMatrix4fv(uModel,false,model);GL.uniform3fv(uColor,color);
  GL.drawElements(GL.TRIANGLES,mesh.count,GL.UNSIGNED_SHORT,0);
 }
+
+let zoom3d=1.0;
+let angle3dDeg=36;
+
+function syncCameraControls(){
+ const z=Math.round(zoom3d*100), a=Math.round(angle3dDeg);
+ zoom3dEl.value=z; mobileZoom3d.value=z;
+ angle3dEl.value=a; mobileAngle3d.value=a;
+}
+function resetCamera3D(){
+ zoom3d=1.0;
+ angle3dDeg=36;
+ syncCameraControls();
+ renderGL();
+}
+
 function setupCameraGL(){
- const flip=humanSide()==="g",eye=flip?[0,12.8,-14.8]:[0,12.8,14.8];
- projM=m4Perspective(29*Math.PI/180,glCanvas.width/glCanvas.height,.1,50);
- viewM=m4LookAt(eye,[0,.05,0],[0,1,0]);vpM=m4Mul(projM,viewM);invVPM=m4Inv(vpM);
- GL.uniform3fv(uEye,eye);GL.uniform3fv(uLight,[-4,10,6]);
+ const flip=humanSide()==="g";
+
+ // angle3dDeg controls camera elevation above the board.
+ const a=angle3dDeg*Math.PI/180;
+ const distance=14.8/zoom3d;
+ const horizontal=Math.cos(a)*distance;
+ const height=Math.sin(a)*distance + 4.6;
+
+ const eye=flip?[0,height,-horizontal]:[0,height,horizontal];
+
+ // Zoom is primarily camera distance; keep FOV stable to avoid distortion.
+ projM=m4Perspective(29*Math.PI/180,glCanvas.width/glCanvas.height,.1,40);
+ viewM=m4LookAt(eye,[0,.25,0],[0,1,0]);
+ vpM=m4Mul(projM,viewM);
+ invVPM=m4Inv(vpM);
+
+ GL.uniform3fv(uEye,eye);
+ GL.uniform3fv(uLight,[-4,10,6]);
  updateProjectedCoordsGL();
 }
 
@@ -1378,6 +1442,22 @@ mobileViewMode.addEventListener("change",()=>{viewModeEl.value=mobileViewMode.va
 pieceSetEl.addEventListener("change",()=>{mobilePieceSet.value=pieceSetEl.value;renderGL()});
 mobilePieceSet.addEventListener("change",()=>{pieceSetEl.value=mobilePieceSet.value;renderGL()});
 
+function applyZoomValue(v){
+ zoom3d=Math.max(.70,Math.min(1.45,Number(v)/100||1));
+ syncCameraControls(); renderGL();
+}
+function applyAngleValue(v){
+ angle3dDeg=Math.max(18,Math.min(58,Number(v)||36));
+ syncCameraControls(); renderGL();
+}
+zoom3dEl.addEventListener("input",()=>applyZoomValue(zoom3dEl.value));
+mobileZoom3d.addEventListener("input",()=>applyZoomValue(mobileZoom3d.value));
+angle3dEl.addEventListener("input",()=>applyAngleValue(angle3dEl.value));
+mobileAngle3d.addEventListener("input",()=>applyAngleValue(mobileAngle3d.value));
+resetCamera3dEl.addEventListener("click",resetCamera3D);
+mobileResetCamera3d.addEventListener("click",resetCamera3D);
+
+
 humanSideEl.addEventListener("change",()=>{mobileHumanSide.value=humanSideEl.value;updateSideLabels();reset()});
 mobileHumanSide.addEventListener("change",()=>{humanSideEl.value=mobileHumanSide.value;updateSideLabels();reset()});
 variantEl.addEventListener("change",()=>{mobileVariant.value=variantEl.value;reset()});
@@ -1403,6 +1483,7 @@ mobileMode.value=modeEl.value;
 mobileViewMode.value=viewModeEl.value;
 mobilePieceSet.value=pieceSetEl.value;
 updateStrengthStatus();
+syncCameraControls();
 reset();
 })();
 </script>
