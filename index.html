@@ -130,7 +130,7 @@ body.real3d .boardShell{
  padding:8px;background:linear-gradient(145deg,#171310,#0c0b0a);
  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 16px 38px rgba(0,0,0,.42)
 }
-#glBoard{display:block;width:100%;height:100%;touch-action:manipulation}
+#glBoard{display:block;width:100%;height:100%;touch-action:none;cursor:pointer;-webkit-user-select:none;user-select:none}
 #glBottomCoords{
  position:absolute;left:7.5%;right:7.5%;bottom:1.1%;display:grid;grid-template-columns:repeat(10,1fr);
  pointer-events:none;color:#f3e1bd;font-weight:800;font-size:clamp(10px,1.3vw,17px);
@@ -171,7 +171,7 @@ body.real3d .boardShell{
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.4 REBUILT 3D · N1</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.5.1 TRUE 3D · TOUCH FIX</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -1155,38 +1155,117 @@ function addCone(g,r,h,cy,seg=22){
  addLathe(g,[[r,cy],[r*.88,cy+h*.2],[0,cy+h]],seg);
 }
 function addHorse(g,scale=1,cy=.7){
- // Extruded stylized horse head, clearly distinct from ordinary bishop/rook.
- const pts=[[-.24,-.30],[-.20,-.02],[-.10,.18],[-.17,.42],[.02,.36],[.15,.30],[.28,.12],[.33,-.05],[.20,-.20],[.08,-.10],[.02,-.28]];
- const z=.12*scale,base=g.p.length/3;
- for(const side of [-1,1])for(const [x,y] of pts){g.p.push(x*scale,cy+y*scale,side*z);g.n.push(0,0,side)}
- const L=pts.length;
- for(let side=0;side<2;side++)for(let k=1;k<L-1;k++)g.i.push(base+side*L,base+side*L+k,base+side*L+k+1);
- for(let k=0;k<L;k++){const q=(k+1)%L,a=base+k,b=base+q,c=base+L+q,d=base+L+k;g.i.push(a,b,c,a,c,d)}
+ // Fuller extruded horse silhouette: broad chest, curved neck, visible muzzle and ears.
+ const pts=[
+  [-.28,-.34],[-.30,-.10],[-.23,.10],[-.12,.29],[-.16,.48],
+  [-.05,.43],[.02,.54],[.08,.42],[.21,.34],[.32,.20],
+  [.36,.03],[.31,-.12],[.21,-.24],[.10,-.17],[.03,-.31]
+ ];
+ const z=.16*scale,base=g.p.length/3,L=pts.length;
+ for(const side of [-1,1]){
+  for(const [x,y] of pts){g.p.push(x*scale,cy+y*scale,side*z);g.n.push(0,0,side)}
+ }
+ // front/back faces
+ for(let side=0;side<2;side++)for(let k=1;k<L-1;k++){
+  if(side===0)g.i.push(base+side*L,base+side*L+k+1,base+side*L+k);
+  else g.i.push(base+side*L,base+side*L+k,base+side*L+k+1);
+ }
+ // side walls
+ for(let k=0;k<L;k++){
+  const q=(k+1)%L,a=base+k,b=base+q,c=base+L+q,d=base+L+k;
+  g.i.push(a,b,c,a,c,d);
+ }
+ // muzzle volume
+ addBox(g,.22*scale,.13*scale,.38*scale,.23*scale,cy+.02*scale,0);
+ // mane ridge
+ for(let k=0;k<4;k++){
+  addBox(g,.06*scale,.12*scale,.36*scale,-.10*scale,cy+(.20+k*.07)*scale,0);
+ }
 }
 function makePieceGeom(type,set){
  const g=meshBuilder();
- const base=[[.34,0],[.43,.07],[.44,.13],[.34,.19],[.28,.24],[.22,.34],[.20,.55],[.25,.66]];
- if(type==="P"){addLathe(g,[[.22,0],[.30,.07],[.24,.14],[.14,.22],[.12,.45],[.17,.53]],18);addSphere(g,.15,.67)}
- else if(type==="R"){addLathe(g,base,22);addLathe(g,[[.25,.66],[.28,.82],[.33,.88]],22);for(let i=0;i<6;i++){let a=i*Math.PI/3;addBox(g,.13,.18,.13,Math.cos(a)*.25,1.0,Math.sin(a)*.25)}}
- else if(type==="N"){addLathe(g,base,22);addHorse(g,.95,.80)}
- else if(type==="B"){addLathe(g,base,22);addSphere(g,.22,.82,1.15);addCone(g,.20,.32,.93)}
- else if(type==="Q"){addLathe(g,base,22);addLathe(g,[[.25,.66],[.29,.80],[.30,.86]],22);for(let i=0;i<7;i++){let a=i*Math.PI*2/7;addCone(g,.055,.25,.89);}}
- else if(type==="K"){addLathe(g,base,22);addSphere(g,.22,.84,.85);addBox(g,.08,.34,.08,0,1.20,0);addBox(g,.28,.08,.08,0,1.29,0)}
+
+ // Classical family base, deliberately fuller than earlier test geometry.
+ const base=[[.38,0],[.46,.06],[.47,.12],[.40,.18],[.34,.23],[.29,.30],[.25,.42],[.24,.57],[.29,.66]];
+
+ function addCollar(y=.68,r=.31,h=.10){addLathe(g,[[r*.92,y],[r,y+h*.35],[r*.94,y+h]],24)}
+ function addRookCrown(y=.84,r=.34,toothH=.20){
+  addLathe(g,[[r*.86,y],[r,y+.06],[r,y+.13]],24);
+  for(let i=0;i<6;i++){
+   const a=i*Math.PI/3;
+   addBox(g,.14,toothH,.15,Math.cos(a)*(r-.06),y+.13+toothH/2,Math.sin(a)*(r-.06));
+  }
+ }
+
+ if(type==="P"){
+  addLathe(g,[[.24,0],[.32,.06],[.31,.12],[.22,.18],[.16,.28],[.14,.45],[.18,.54]],22);
+  addSphere(g,.17,.70,1.0);
+ }
+ else if(type==="R"){
+  addLathe(g,base,24); addCollar(.67,.30,.10);
+  addLathe(g,[[.25,.77],[.29,.86],[.34,.90]],24);
+  addRookCrown(.88,.35,.18);
+ }
+ else if(type==="N"){
+  addLathe(g,base,24);
+  addLathe(g,[[.23,.66],[.24,.78]],22);
+  addHorse(g,.92,.90);
+ }
+ else if(type==="B"){
+  addLathe(g,base,24); addCollar(.67,.29,.09);
+  addSphere(g,.25,.89,1.10);
+  addCone(g,.22,.35,1.00);
+  // bishop cut accent as a dark narrow prism through the head
+  addBox(g,.055,.34,.44,.08,1.16,.02);
+ }
+ else if(type==="Q"){
+  addLathe(g,base,24); addCollar(.67,.31,.10);
+  addLathe(g,[[.27,.78],[.31,.88],[.30,.94]],24);
+  for(let i=0;i<7;i++){
+   const a=i*Math.PI*2/7;
+   const x=Math.cos(a)*.25,z=Math.sin(a)*.25;
+   addCone(g,.065,.25,.94);
+   addSphere(g,.055,1.22);
+  }
+ }
+ else if(type==="K"){
+  addLathe(g,base,24); addCollar(.67,.30,.10);
+  addSphere(g,.24,.92,.90);
+  addLathe(g,[[.18,1.02],[.19,1.12]],20);
+  addBox(g,.085,.34,.09,0,1.30,0);
+  addBox(g,.30,.085,.09,0,1.39,0);
+ }
  else if(type==="C"&&set==="n1"){
-  addLathe(g,base,22);addLathe(g,[[.25,.66],[.29,.79],[.34,.85]],22);
-  for(let i=0;i<6;i++){let a=i*Math.PI/3;addBox(g,.13,.14,.13,Math.cos(a)*.25,.96,Math.sin(a)*.25)}
-  addHorse(g,.52,.99);
- } else if(type==="A"&&set==="n1"){
-  addLathe(g,base,22);addSphere(g,.22,.80,1.12);addCone(g,.19,.18,.91);addHorse(g,.44,.98);
- } else if(type==="C"&&set==="n2"){
-  addLathe(g,[[.35,0],[.44,.08],[.43,.15],[.31,.25],[.30,.77],[.34,.88],[.34,.98]],24);
-  addSphere(g,.22,1.04,.45);
-  for(let i=0;i<6;i++){let a=i*Math.PI/3;addBox(g,.14,.22,.14,Math.cos(a)*.26,1.14,Math.sin(a)*.26)}
- } else if(type==="A"&&set==="n2"){
-  addLathe(g,base,22);addLathe(g,[[.23,.66],[.24,.88]],22);
-  // Napoleon-style flattened lateral top
-  addBox(g,.78,.11,.32,0,1.03,0);addSphere(g,.34,1.04,.28);
- } else {addLathe(g,base,22)}
+  // Approved N1 Chancellor: horse head integrated above a rook-like 6-crenellation collar.
+  addLathe(g,base,24);
+  addLathe(g,[[.27,.66],[.31,.77],[.35,.82]],24);
+  addRookCrown(.80,.36,.17);
+  addLathe(g,[[.22,.96],[.20,1.04]],20);
+  addHorse(g,.70,1.14);
+ }
+ else if(type==="A"&&set==="n1"){
+  // Approved N1 Archbishop: bishop body/head with integrated horse head.
+  addLathe(g,base,24); addCollar(.67,.29,.09);
+  addSphere(g,.25,.86,1.12);
+  addCone(g,.22,.27,.97);
+  addHorse(g,.56,1.14);
+ }
+ else if(type==="C"&&set==="n2"){
+  // Approved N2 Chancellor: tall rounded top, six deep crenellations, no horse head.
+  addLathe(g,[[.39,0],[.47,.06],[.46,.13],[.36,.20],[.31,.27],[.30,.78],[.34,.90]],26);
+  addSphere(g,.28,.98,.45);
+  addRookCrown(.93,.37,.24);
+ }
+ else if(type==="A"&&set==="n2"){
+  // Approved N2 Archbishop: tall body with flattened lateral Napoleon-hat crown.
+  addLathe(g,[[.38,0],[.46,.06],[.45,.13],[.35,.20],[.28,.28],[.24,.68],[.27,.84]],26);
+  addCollar(.82,.30,.09);
+  addSphere(g,.25,.94,.72);
+  addBox(g,.82,.10,.38,0,1.12,0);
+  addSphere(g,.38,1.12,.26);
+ }
+ else { addLathe(g,base,24); }
+
  return g;
 }
 function compileMesh(g){
@@ -1205,10 +1284,15 @@ function ensureGL(){
   const vs=`attribute vec3 aPos;attribute vec3 aNor;uniform mat4 uMVP;uniform mat4 uModel;varying vec3 vN;varying vec3 vP;
   void main(){vec4 wp=uModel*vec4(aPos,1.0);vP=wp.xyz;vN=mat3(uModel)*aNor;gl_Position=uMVP*vec4(aPos,1.0);}`;
   const fs=`precision mediump float;uniform vec3 uColor;uniform vec3 uLight;uniform vec3 uEye;varying vec3 vN;varying vec3 vP;
-  void main(){vec3 N=normalize(vN),L=normalize(uLight-vP),V=normalize(uEye-vP),H=normalize(L+V);
-   float d=max(dot(N,L),0.0),sp=pow(max(dot(N,H),0.0),42.0);
-   vec3 c=uColor*(0.28+0.72*d)+vec3(0.75)*sp+vec3(0.05);
-   gl_FragColor=vec4(c,1.0);}`;
+  void main(){
+   vec3 N=normalize(vN),L=normalize(uLight-vP),V=normalize(uEye-vP),H=normalize(L+V);
+   float d=max(dot(N,L),0.0);
+   float rim=pow(1.0-max(dot(N,V),0.0),2.0);
+   float sp=pow(max(dot(N,H),0.0),58.0);
+   vec3 base=uColor*(0.34+0.76*d);
+   vec3 c=base+vec3(0.72)*sp+uColor*rim*0.22+vec3(0.025);
+   gl_FragColor=vec4(c,1.0);
+  }`;
   GLP=GL.createProgram();GL.attachShader(GLP,shader(GL.VERTEX_SHADER,vs));GL.attachShader(GLP,shader(GL.FRAGMENT_SHADER,fs));GL.linkProgram(GLP);
   if(!GL.getProgramParameter(GLP,GL.LINK_STATUS))throw new Error(GL.getProgramInfoLog(GLP));
   GL.useProgram(GLP);
@@ -1220,7 +1304,8 @@ function ensureGL(){
   const board=meshBuilder();addBox(board,10.6,.34,8.6,0,-.20,0);glMeshes.board=compileMesh(board);
   const sq=meshBuilder();addBox(sq,.99,.08,.99,0,.02,0);glMeshes.sq=compileMesh(sq);
   for(const set of ["n1","n2"])for(const t of ["P","R","N","B","Q","K","C","A"])glMeshes[set+t]=compileMesh(makePieceGeom(t,set));
-  glCanvas.addEventListener("pointerup",glPointer);
+  glCanvas.addEventListener("pointerdown",glPointer,{passive:false});
+  glCanvas.addEventListener("click",glPointer,{passive:false});
   window.addEventListener("resize",resizeGL);
   GLReady=true;glWrap.classList.remove("failed");return true;
  }catch(e){console.error(e);GLFailed=true;glWrap.classList.add("failed");return false}
@@ -1308,22 +1393,46 @@ function renderGL(){
   const p=state[r][c];if(!p)continue;
   let model=m4Translate(c-4.5,.08,r-3.5);
   if(p.c==="g")model=m4Mul(model,m4RotY(Math.PI));
-  const sc=p.t==="P"?.57:.63;model=m4Mul(model,m4Scale(sc,sc,sc));
-  const color=p.c==="r"?new Float32Array([.62,.035,.045]):new Float32Array([.035,.34,.12]);
+  const sc=p.t==="P"?.64:.72;model=m4Mul(model,m4Scale(sc,sc,sc));
+  const color=p.c==="r"?new Float32Array([.72,.035,.055]):new Float32Array([.025,.42,.15]);
   drawMesh(glMeshes[set+p.t],model,color);
  }
 }
+function pointInQuad(px,py,q){
+ // split convex quad into two triangles
+ function tri(ax,ay,bx,by,cx,cy){
+  const d1=(px-bx)*(ay-by)-(ax-bx)*(py-by);
+  const d2=(px-cx)*(by-cy)-(bx-cx)*(py-cy);
+  const d3=(px-ax)*(cy-ay)-(cx-ax)*(py-ay);
+  const neg=(d1<0)||(d2<0)||(d3<0),pos=(d1>0)||(d2>0)||(d3>0);
+  return !(neg&&pos);
+ }
+ return tri(q[0].x,q[0].y,q[1].x,q[1].y,q[2].x,q[2].y) ||
+        tri(q[0].x,q[0].y,q[2].x,q[2].y,q[3].x,q[3].y);
+}
+function screenToSquareGL(clientX,clientY){
+ const wr=glWrap.getBoundingClientRect();
+ const px=clientX-wr.left,py=clientY-wr.top;
+ // Use the exact projected four corners of every square.
+ for(let r=0;r<8;r++)for(let c=0;c<10;c++){
+  const q=[
+   projectGLPoint(c-5.0,.11,r-4.0),
+   projectGLPoint(c-4.0,.11,r-4.0),
+   projectGLPoint(c-4.0,.11,r-3.0),
+   projectGLPoint(c-5.0,.11,r-3.0)
+  ];
+  if(q.every(Boolean)&&pointInQuad(px,py,q))return {r,c};
+ }
+ return null;
+}
+let lastGLTap=0;
 function glPointer(ev){
+ if(ev.type==="click" && performance.now()-lastGLTap<350)return;
+ if(ev.type==="pointerdown")lastGLTap=performance.now();
+ if(ev.cancelable)ev.preventDefault();
  if(!state||gameOver||pendingPromotion||viewModeEl.value!=="3d")return;
- const rect=glCanvas.getBoundingClientRect();
- const nx=(ev.clientX-rect.left)/rect.width*2-1,ny=1-(ev.clientY-rect.top)/rect.height*2;
- const p0=v4mul(invVPM,[nx,ny,-1,1]),p1=v4mul(invVPM,[nx,ny,1,1]);
- for(const p of [p0,p1]){p[0]/=p[3];p[1]/=p[3];p[2]/=p[3]}
- const dy=p1[1]-p0[1];if(Math.abs(dy)<1e-6)return;
- const t=(.05-p0[1])/dy;if(t<0)return;
- const x=p0[0]+(p1[0]-p0[0])*t,z=p0[2]+(p1[2]-p0[2])*t;
- const c=Math.floor(x+5),r=Math.floor(z+4);
- if(inside(r,c))chooseSquare(r,c);
+ const sq=screenToSquareGL(ev.clientX,ev.clientY);
+ if(sq)chooseSquare(sq.r,sq.c);
 }
 
 document.querySelectorAll(".sq").forEach(s=>s.addEventListener("click",onSquare));
