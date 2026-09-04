@@ -153,11 +153,25 @@ body.real3d .boardShell{
  #glSideCoords{left:.5%;top:12%;bottom:9%}
 }
 
+
+/* v5.4 — coordinate labels are projected with the board */
+#glCoordLayer{
+ position:absolute; inset:0; pointer-events:none; z-index:4;
+ font-weight:800; color:#f2dfbd;
+ text-shadow:0 1px 3px rgba(0,0,0,.95);
+}
+.glCoord{
+ position:absolute; transform:translate(-50%,-50%);
+ line-height:1; white-space:nowrap;
+}
+.glCoord.file{font-size:clamp(11px,1.35vw,18px)}
+.glCoord.rank{font-size:clamp(10px,1.2vw,16px)}
+
 </style>
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.3 REBUILT 3D · N1</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.4 REBUILT 3D · N1</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -233,8 +247,7 @@ body.real3d .boardShell{
    <div class="boardShell">
     <div id="glWrap">
       <canvas id="glBoard" aria-label="3D шахівниця Капабланки"></canvas>
-      <div id="glBottomCoords"></div>
-      <div id="glSideCoords"></div>
+      <div id="glCoordLayer" aria-hidden="true"></div>
       <div id="glFallback">3D недоступне на цьому пристрої — перемкніть «Вигляд: 2D».</div>
     </div>
     <div id="board" class="board">
@@ -380,7 +393,7 @@ const humanSideEl=document.getElementById("humanSide"), mobileHumanSide=document
 const viewModeEl=document.getElementById("viewMode"), mobileViewMode=document.getElementById("mobileViewMode");
 const pieceSetEl=document.getElementById("pieceSet"), mobilePieceSet=document.getElementById("mobilePieceSet");
 const glWrap=document.getElementById("glWrap"), glCanvas=document.getElementById("glBoard");
-const glBottomCoords=document.getElementById("glBottomCoords"), glSideCoords=document.getElementById("glSideCoords");
+const glCoordLayer=document.getElementById("glCoordLayer");
 const modeEl=document.getElementById("mode"), mobileMode=document.getElementById("mobileMode");
 const turnStatus=document.getElementById("turnStatus"), subStatus=document.getElementById("subStatus");
 const mobileTurn=document.getElementById("mobileTurn"), mobileState=document.getElementById("mobileState");
@@ -1217,7 +1230,7 @@ function resizeGL(){
  const r=glWrap.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,1.6);
  const w=Math.max(320,Math.round(r.width*dpr)),h=Math.max(260,Math.round(r.height*dpr));
  if(glCanvas.width!==w||glCanvas.height!==h){glCanvas.width=w;glCanvas.height=h}
- GL.viewport(0,0,w,h);
+ GL.viewport(0,0,w,h); if(GLReady)requestAnimationFrame(updateProjectedCoordsGL);
 }
 function drawMesh(mesh,model,color){
  GL.bindBuffer(GL.ARRAY_BUFFER,mesh.pb);GL.vertexAttribPointer(aPos,3,GL.FLOAT,false,0,0);
@@ -1231,14 +1244,56 @@ function setupCameraGL(){
  projM=m4Perspective(29*Math.PI/180,glCanvas.width/glCanvas.height,.1,50);
  viewM=m4LookAt(eye,[0,.05,0],[0,1,0]);vpM=m4Mul(projM,viewM);invVPM=m4Inv(vpM);
  GL.uniform3fv(uEye,eye);GL.uniform3fv(uLight,[-4,10,6]);
- const files=flip?[...FILES].reverse():[...FILES];
- const ranks=flip?["1","2","3","4","5","6","7","8"]:["8","7","6","5","4","3","2","1"];
- glBottomCoords.innerHTML=files.map(x=>`<span>${x}</span>`).join("");
- glSideCoords.innerHTML=ranks.map(x=>`<span>${x}</span>`).join("");
+ updateProjectedCoordsGL();
 }
+
+function projectGLPoint(x,y,z){
+ const p=v4mul(vpM,[x,y,z,1]);
+ if(Math.abs(p[3])<1e-6)return null;
+ const nx=p[0]/p[3], ny=p[1]/p[3];
+ const rect=glWrap.getBoundingClientRect();
+ return {x:(nx*.5+.5)*rect.width,y:(1-(ny*.5+.5))*rect.height};
+}
+function updateProjectedCoordsGL(){
+ if(!glCoordLayer||!vpM)return;
+ glCoordLayer.innerHTML="";
+ const flip=humanSide()==="g";
+ const fileLabels=flip?[...FILES].reverse():[...FILES];
+ const rankLabels=flip?["1","2","3","4","5","6","7","8"]:["8","7","6","5","4","3","2","1"];
+
+ // Horizontal coordinates are anchored just outside the near 3D board edge.
+ const nearZ=flip?-4.18:4.18;
+ for(let i=0;i<10;i++){
+  const worldC=flip?9-i:i;
+  const p=projectGLPoint(worldC-4.5,.10,nearZ);
+  if(!p)continue;
+  const el=document.createElement("span");
+  el.className="glCoord file";
+  el.textContent=fileLabels[i];
+  el.style.left=p.x+"px";
+  el.style.top=p.y+"px";
+  glCoordLayer.appendChild(el);
+ }
+
+ // Vertical coordinates are anchored to the visible left sloping edge.
+ const sideX=flip?5.15:-5.15;
+ for(let i=0;i<8;i++){
+  const worldR=flip?7-i:i;
+  const p=projectGLPoint(sideX,.10,worldR-3.5);
+  if(!p)continue;
+  const el=document.createElement("span");
+  el.className="glCoord rank";
+  el.textContent=rankLabels[i];
+  el.style.left=p.x+"px";
+  el.style.top=p.y+"px";
+  glCoordLayer.appendChild(el);
+ }
+}
+
 function renderGL(){
  if(viewModeEl.value!=="3d"||!state||!ensureGL())return;
  resizeGL();setupCameraGL();
+ updateProjectedCoordsGL();
  GL.clearColor(.055,.05,.045,1);GL.clear(GL.COLOR_BUFFER_BIT|GL.DEPTH_BUFFER_BIT);
  drawMesh(glMeshes.board,m4Identity(),new Float32Array([.23,.12,.065]));
  for(let r=0;r<8;r++)for(let c=0;c<10;c++){
@@ -1253,7 +1308,7 @@ function renderGL(){
   const p=state[r][c];if(!p)continue;
   let model=m4Translate(c-4.5,.08,r-3.5);
   if(p.c==="g")model=m4Mul(model,m4RotY(Math.PI));
-  const sc=p.t==="P"?.58:.66;model=m4Mul(model,m4Scale(sc,sc,sc));
+  const sc=p.t==="P"?.57:.63;model=m4Mul(model,m4Scale(sc,sc,sc));
   const color=p.c==="r"?new Float32Array([.62,.035,.045]):new Float32Array([.035,.34,.12]);
   drawMesh(glMeshes[set+p.t],model,color);
  }
