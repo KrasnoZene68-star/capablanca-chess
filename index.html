@@ -157,7 +157,7 @@ body.real3d .boardShell{
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.2 SELF-CONTAINED 3D · N1 / N2</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.3 REBUILT 3D · N1</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -1162,9 +1162,9 @@ function makePieceGeom(type,set){
  else if(type==="C"&&set==="n1"){
   addLathe(g,base,22);addLathe(g,[[.25,.66],[.29,.79],[.34,.85]],22);
   for(let i=0;i<6;i++){let a=i*Math.PI/3;addBox(g,.13,.14,.13,Math.cos(a)*.25,.96,Math.sin(a)*.25)}
-  addHorse(g,.70,1.06);
+  addHorse(g,.52,.99);
  } else if(type==="A"&&set==="n1"){
-  addLathe(g,base,22);addSphere(g,.23,.82,1.18);addCone(g,.20,.22,.94);addHorse(g,.55,1.05);
+  addLathe(g,base,22);addSphere(g,.22,.80,1.12);addCone(g,.19,.18,.91);addHorse(g,.44,.98);
  } else if(type==="C"&&set==="n2"){
   addLathe(g,[[.35,0],[.44,.08],[.43,.15],[.31,.25],[.30,.77],[.34,.88],[.34,.98]],24);
   addSphere(g,.22,1.04,.45);
@@ -1227,9 +1227,9 @@ function drawMesh(mesh,model,color){
  GL.drawElements(GL.TRIANGLES,mesh.count,GL.UNSIGNED_SHORT,0);
 }
 function setupCameraGL(){
- const flip=humanSide()==="g",eye=flip?[0,8.2,-11.8]:[0,8.2,11.8];
- projM=m4Perspective(35*Math.PI/180,glCanvas.width/glCanvas.height,.1,40);
- viewM=m4LookAt(eye,[0,.25,0],[0,1,0]);vpM=m4Mul(projM,viewM);invVPM=m4Inv(vpM);
+ const flip=humanSide()==="g",eye=flip?[0,12.8,-14.8]:[0,12.8,14.8];
+ projM=m4Perspective(29*Math.PI/180,glCanvas.width/glCanvas.height,.1,50);
+ viewM=m4LookAt(eye,[0,.05,0],[0,1,0]);vpM=m4Mul(projM,viewM);invVPM=m4Inv(vpM);
  GL.uniform3fv(uEye,eye);GL.uniform3fv(uLight,[-4,10,6]);
  const files=flip?[...FILES].reverse():[...FILES];
  const ranks=flip?["1","2","3","4","5","6","7","8"]:["8","7","6","5","4","3","2","1"];
@@ -1253,7 +1253,7 @@ function renderGL(){
   const p=state[r][c];if(!p)continue;
   let model=m4Translate(c-4.5,.08,r-3.5);
   if(p.c==="g")model=m4Mul(model,m4RotY(Math.PI));
-  const sc=p.t==="P"?.72:.78;model=m4Mul(model,m4Scale(sc,sc,sc));
+  const sc=p.t==="P"?.58:.66;model=m4Mul(model,m4Scale(sc,sc,sc));
   const color=p.c==="r"?new Float32Array([.62,.035,.045]):new Float32Array([.035,.34,.12]);
   drawMesh(glMeshes[set+p.t],model,color);
  }
