@@ -184,7 +184,7 @@ body:not(.real3d) .cameraControls{display:none}
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.7 3D CAMERA · ZOOM + ANGLE</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.8 TEST · FAIRY-STOCKFISH</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -399,12 +399,13 @@ body:not(.real3d) .cameraControls{display:none}
 
   <aside class="panel right">
    <div style="font-weight:800;margin-bottom:10px">Партія</div>
-   <div class="statusbox" style="margin-bottom:10px">Комп’ютер <span style="color:#86c964">●</span><div id="engineText" style="font-size:12px;color:#999">Вбудований ШІ · 4/8 Досвідчений</div></div>
+   <div class="statusbox" style="margin-bottom:10px">Комп’ютер <span style="color:#86c964">●</span><div id="engineText" style="font-size:12px;color:#999">Fairy-Stockfish · завантаження…</div></div>
    <div id="moveList" class="moveList"></div>
   </aside>
  </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/fairy-stockfish-nnue.wasm@1.1.12/stockfish.js"></script>
 <script>
 (()=>{
 "use strict";
@@ -440,6 +441,109 @@ const resultOverlay=document.getElementById("resultOverlay"), promoOverlay=docum
 const resultIcon=document.getElementById("resultIcon"), resultTitle=document.getElementById("resultTitle"), resultText=document.getElementById("resultText");
 
 let state, turn, selected, legal, lastMove, history, gameOver, epSquare, pendingPromotion;
+
+
+// --- v5.8 Fairy-Stockfish bridge --------------------------------------------
+// Classical Capablanca only. Red = UCI white, green = UCI black.
+// Author variants deliberately keep the known-good local engine.
+let fairyEngine=null, fairyReady=false, fairyBusy=false, fairyQueue=[];
+let fairyInitPromise=null;
+const FAIRY_VARIANT="capablanca";
+
+function fairySend(cmd){ if(fairyEngine) fairyEngine.postMessage(cmd); }
+function fairyWait(pred,timeout=10000){
+ return new Promise((resolve,reject)=>{
+  const item={pred,resolve,reject,timer:null};
+  item.timer=setTimeout(()=>{
+   const i=fairyQueue.indexOf(item); if(i>=0)fairyQueue.splice(i,1);
+   reject(new Error("Fairy-Stockfish timeout"));
+  },timeout);
+  fairyQueue.push(item);
+ });
+}
+function fairyOnLine(line){
+ line=String(line||"").trim();
+ for(let i=0;i<fairyQueue.length;i++){
+  const q=fairyQueue[i];
+  if(q.pred(line)){ fairyQueue.splice(i,1); clearTimeout(q.timer); q.resolve(line); break; }
+ }
+}
+function fairySkill(){ return [0,0,2,5,8,12,16,19,20][strengthLevel()]; }
+function fairyMoveTime(){ return [0,100,160,260,450,750,1200,2200,4200][strengthLevel()]; }
+function applyFairyStrength(){
+ if(!fairyEngine)return;
+ fairySend(`setoption name Skill Level value ${fairySkill()}`);
+}
+async function initFairy(){
+ if(fairyReady)return true;
+ if(fairyInitPromise)return fairyInitPromise;
+ fairyInitPromise=(async()=>{
+  try{
+   if(typeof Stockfish!=="function")throw new Error("Fairy loader unavailable");
+   fairyEngine=await Stockfish();
+   fairyEngine.addMessageListener(fairyOnLine);
+   fairySend("uci"); await fairyWait(x=>x==="uciok",5000);
+   fairySend(`setoption name UCI_Variant value ${FAIRY_VARIANT}`);
+   fairySend("setoption name Threads value 1");
+   fairySend("setoption name Hash value 32");
+   applyFairyStrength();
+   fairySend("isready"); await fairyWait(x=>x==="readyok",5000);
+   fairyReady=true; updateStrengthStatus(); return true;
+  }catch(e){
+   console.warn("Fairy-Stockfish unavailable; local fallback",e);
+   fairyReady=false; fairyEngine=null; fairyInitPromise=null; updateStrengthStatus(); return false;
+  }
+ })();
+ return fairyInitPromise;
+}
+function fenPiece(p){
+ const map={P:"p",N:"n",B:"b",R:"r",Q:"q",K:"k",A:"a",C:"c"};
+ const ch=map[p.t]||""; return p.c==="r"?ch.toUpperCase():ch;
+}
+function stateToFen(){
+ const rows=[];
+ for(let r=0;r<8;r++){
+  let row="",empty=0;
+  for(let c=0;c<10;c++){
+   const p=state[r][c];
+   if(!p){empty++;continue}
+   if(empty){row+=empty;empty=0} row+=fenPiece(p);
+  }
+  if(empty)row+=empty; rows.push(row);
+ }
+ let rights="";
+ const rk=state[7][5], rrL=state[7][0], rrR=state[7][9];
+ const gk=state[0][5], grL=state[0][0], grR=state[0][9];
+ if(rk?.t==="K"&&rk.c==="r"&&!rk.m){if(rrR?.t==="R"&&rrR.c==="r"&&!rrR.m)rights+="K";if(rrL?.t==="R"&&rrL.c==="r"&&!rrL.m)rights+="Q"}
+ if(gk?.t==="K"&&gk.c==="g"&&!gk.m){if(grR?.t==="R"&&grR.c==="g"&&!grR.m)rights+="k";if(grL?.t==="R"&&grL.c==="g"&&!grL.m)rights+="q"}
+ if(!rights)rights="-";
+ const ep=epSquare?FILES[epSquare.c]+(8-epSquare.r):"-";
+ return `${rows.join("/")} ${turn==="r"?"w":"b"} ${rights} ${ep} 0 ${Math.floor(history.length/2)+1}`;
+}
+function uciToMove(uci){
+ if(!uci||uci==="(none)"||uci.length<4)return null;
+ const fc=FILES.indexOf(uci[0]),fr=8-parseInt(uci[1],10),tc=FILES.indexOf(uci[2]),tr=8-parseInt(uci[3],10);
+ if(fc<0||tc<0||!inside(fr,fc)||!inside(tr,tc))return null;
+ let m=allLegalMoves(state,turn,epSquare).find(x=>x.fr===fr&&x.fc===fc&&x.tr===tr&&x.tc===tc);
+ if(!m)return null;
+ if(uci[4]){const pm={q:"Q",r:"R",b:"B",n:"N",a:"A",c:"C"};m={...m,promote:pm[uci[4].toLowerCase()]||"Q"}}
+ return m;
+}
+async function fairyBestMove(){
+ if(!await initFairy())return null;
+ fairyBusy=true;
+ try{
+  fairySend("stop");
+  fairySend(`setoption name UCI_Variant value ${FAIRY_VARIANT}`);
+  applyFairyStrength();
+  fairySend(`position fen ${stateToFen()}`);
+  fairySend("isready"); await fairyWait(x=>x==="readyok",5000);
+  fairySend(`go movetime ${fairyMoveTime()}`);
+  const line=await fairyWait(x=>x.startsWith("bestmove "),fairyMoveTime()+8000);
+  return uciToMove(line.split(/\s+/)[1]);
+ }catch(e){console.warn("Fairy search failed; local fallback",e);return null}
+ finally{fairyBusy=false}
+}
 
 function variant(){return variantEl.value}
 function humanSide(){return humanSideEl.value}
@@ -508,7 +612,9 @@ function strengthProfile(){
 function updateStrengthStatus(){
  const p=strengthProfile();
  const e=document.getElementById("engineText");
- if(e)e.textContent=`Вбудований ШІ · ${strengthLevel()}/8 ${p.name}`;
+ if(!e)return;
+ if(variant()==="classic") e.textContent=fairyReady?`Fairy-Stockfish · ${strengthLevel()}/8 ${p.name}`:`Fairy-Stockfish · запуск / резервний ШІ`;
+ else e.textContent=`Авторський режим · вбудований ШІ · ${strengthLevel()}/8 ${p.name}`;
 }
 
 function enemy(c){return c==="r"?"g":"r"}
@@ -765,7 +871,7 @@ function commitMove(m){
  const arrived=state[m.tr][m.tc];
  if(arrived.t==="P"&&(m.tr===0||m.tr===7)){
   if(modeEl.value==="ai"&&arrived.c===aiSide()){
-   arrived.t="Q";
+   arrived.t=m.promote||"Q";
    finishTurn(noteBase+"=Q");
    return;
   }
@@ -1061,7 +1167,7 @@ function searchRoot(depth,rootColor){
  return {move:bestMove,score:best};
 }
 
-function aiTurn(){
+function localAiTurn(){
  if(gameOver||modeEl.value!=="ai"||turn!==aiSide())return;
  const color=aiSide();
  const moves=orderedMoves(state,color,epSquare);
@@ -1082,6 +1188,16 @@ function aiTurn(){
  }
  updateStrengthStatus();
  commitMove(chosen);
+}
+async function aiTurn(){
+ if(gameOver||modeEl.value!=="ai"||turn!==aiSide())return;
+ if(variant()==="classic"){
+  updateStrengthStatus();
+  const m=await fairyBestMove();
+  if(gameOver||turn!==aiSide())return;
+  if(m){updateStrengthStatus();commitMove(m);return}
+ }
+ localAiTurn();
 }
 
 
@@ -1428,12 +1544,10 @@ document.getElementById("movesClose").addEventListener("click",()=>movesOverlay.
 
 
 strengthEl.addEventListener("change",()=>{
- mobileStrength.value=strengthEl.value;
- updateStrengthStatus();
+ mobileStrength.value=strengthEl.value; applyFairyStrength(); updateStrengthStatus();
 });
 mobileStrength.addEventListener("change",()=>{
- strengthEl.value=mobileStrength.value;
- updateStrengthStatus();
+ strengthEl.value=mobileStrength.value; applyFairyStrength(); updateStrengthStatus();
 });
 
 
@@ -1460,8 +1574,8 @@ mobileResetCamera3d.addEventListener("click",resetCamera3D);
 
 humanSideEl.addEventListener("change",()=>{mobileHumanSide.value=humanSideEl.value;updateSideLabels();reset()});
 mobileHumanSide.addEventListener("change",()=>{humanSideEl.value=mobileHumanSide.value;updateSideLabels();reset()});
-variantEl.addEventListener("change",()=>{mobileVariant.value=variantEl.value;reset()});
-mobileVariant.addEventListener("change",()=>{variantEl.value=mobileVariant.value;reset()});
+variantEl.addEventListener("change",()=>{mobileVariant.value=variantEl.value;reset();updateStrengthStatus()});
+mobileVariant.addEventListener("change",()=>{variantEl.value=mobileVariant.value;reset();updateStrengthStatus()});
 modeEl.addEventListener("change",()=>{mobileMode.value=modeEl.value;reset()});
 mobileMode.addEventListener("change",()=>{modeEl.value=mobileMode.value;reset()});
 
