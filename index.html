@@ -180,11 +180,29 @@ body.real3d .boardShell{
 }
 body:not(.real3d) .cameraControls{display:none}
 
+
+/* v5.8.1 — visible engine status, including mobile */
+.engineIndicator{
+ display:flex;align-items:center;gap:8px;margin:8px 0 10px;padding:8px 10px;
+ border:1px solid #4b4b4b;border-radius:10px;background:#242424;
+ font-size:13px;font-weight:800;line-height:1.25;
+}
+.engineIndicator .dot{width:10px;height:10px;border-radius:50%;background:#d5a43a;box-shadow:0 0 0 2px rgba(255,255,255,.06)}
+.engineIndicator.active{color:#a8df86;border-color:#477437}
+.engineIndicator.active .dot{background:#7bd34d;box-shadow:0 0 8px rgba(123,211,77,.55)}
+.engineIndicator.fallback{color:#ffb37d;border-color:#875b3d}
+.engineIndicator.fallback .dot{background:#ff8a3d}
+.engineIndicator.local{color:#c7c7c7;border-color:#555}
+.engineIndicator.local .dot{background:#a8a8a8}
+.engineIndicator.loading{color:#e5d28a;border-color:#786d3a}
+@media(max-width:900px){.engineIndicator{margin:6px 0 10px;font-size:12px}}
+
 </style>
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.8 TEST · FAIRY-STOCKFISH</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.8.1 TEST · FAIRY STATUS</span></div>
+ <div id="engineIndicator" class="engineIndicator loading"><span class="dot"></span><span id="engineIndicatorText">Fairy-Stockfish: перевірка…</span></div>
  <div class="layout">
   <aside class="panel left">
    <div class="controls">
@@ -448,6 +466,7 @@ let state, turn, selected, legal, lastMove, history, gameOver, epSquare, pending
 // Author variants deliberately keep the known-good local engine.
 let fairyEngine=null, fairyReady=false, fairyBusy=false, fairyQueue=[];
 let fairyInitPromise=null;
+let fairyLastSearchOk=null; // null=not tested, true=last move from Fairy, false=fallback
 const FAIRY_VARIANT="capablanca";
 
 function fairySend(cmd){ if(fairyEngine) fairyEngine.postMessage(cmd); }
@@ -488,10 +507,10 @@ async function initFairy(){
    fairySend("setoption name Hash value 32");
    applyFairyStrength();
    fairySend("isready"); await fairyWait(x=>x==="readyok",5000);
-   fairyReady=true; updateStrengthStatus(); return true;
+   fairyReady=true; fairyLastSearchOk=null; updateStrengthStatus(); return true;
   }catch(e){
    console.warn("Fairy-Stockfish unavailable; local fallback",e);
-   fairyReady=false; fairyEngine=null; fairyInitPromise=null; updateStrengthStatus(); return false;
+   fairyReady=false; fairyLastSearchOk=false; fairyEngine=null; fairyInitPromise=null; updateStrengthStatus(); return false;
   }
  })();
  return fairyInitPromise;
@@ -540,8 +559,10 @@ async function fairyBestMove(){
   fairySend("isready"); await fairyWait(x=>x==="readyok",5000);
   fairySend(`go movetime ${fairyMoveTime()}`);
   const line=await fairyWait(x=>x.startsWith("bestmove "),fairyMoveTime()+8000);
-  return uciToMove(line.split(/\s+/)[1]);
- }catch(e){console.warn("Fairy search failed; local fallback",e);return null}
+  const mv=uciToMove(line.split(/\s+/)[1]);
+  fairyLastSearchOk=!!mv; updateStrengthStatus();
+  return mv;
+ }catch(e){console.warn("Fairy search failed; local fallback",e);fairyLastSearchOk=false;updateStrengthStatus();return null}
  finally{fairyBusy=false}
 }
 
@@ -612,9 +633,23 @@ function strengthProfile(){
 function updateStrengthStatus(){
  const p=strengthProfile();
  const e=document.getElementById("engineText");
- if(!e)return;
- if(variant()==="classic") e.textContent=fairyReady?`Fairy-Stockfish · ${strengthLevel()}/8 ${p.name}`:`Fairy-Stockfish · запуск / резервний ШІ`;
- else e.textContent=`Авторський режим · вбудований ШІ · ${strengthLevel()}/8 ${p.name}`;
+ const ind=document.getElementById("engineIndicator");
+ const txt=document.getElementById("engineIndicatorText");
+ let label="", cls="loading";
+ if(variant()!=="classic"){
+  label=`Вбудований ШІ: ${strengthLevel()}/8 ${p.name}`; cls="local";
+ }else if(fairyReady && fairyLastSearchOk===true){
+  label=`Fairy-Stockfish: АКТИВНИЙ · ${strengthLevel()}/8 ${p.name}`; cls="active";
+ }else if(fairyReady && fairyLastSearchOk===null){
+  label=`Fairy-Stockfish: ГОТОВИЙ · ${strengthLevel()}/8 ${p.name}`; cls="active";
+ }else if(fairyLastSearchOk===false){
+  label=`Fairy-Stockfish: НЕ АКТИВНИЙ · резервний ШІ`; cls="fallback";
+ }else{
+  label=`Fairy-Stockfish: перевірка…`; cls="loading";
+ }
+ if(e)e.textContent=label;
+ if(ind){ind.className=`engineIndicator ${cls}`;}
+ if(txt)txt.textContent=label;
 }
 
 function enemy(c){return c==="r"?"g":"r"}
