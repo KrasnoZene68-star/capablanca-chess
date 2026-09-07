@@ -201,7 +201,7 @@ body:not(.real3d) .cameraControls{display:none}
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.8.1 TEST · FAIRY STATUS</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.8.2 TEST · FAIRY LOCAL</span></div>
  <div id="engineIndicator" class="engineIndicator loading"><span class="dot"></span><span id="engineIndicatorText">Fairy-Stockfish: перевірка…</span></div>
  <div class="layout">
   <aside class="panel left">
@@ -423,7 +423,10 @@ body:not(.real3d) .cameraControls{display:none}
  </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/fairy-stockfish-nnue.wasm@1.1.12/stockfish.js"></script>
+<!-- Fairy-Stockfish 1.1.12 is hosted locally beside index.html.
+     Required files in the same GitHub folder: stockfish.js, stockfish.worker.js, stockfish.wasm.
+     Source: https://github.com/fairy-stockfish/fairy-stockfish.wasm (GPL-3.0) -->
+<script src="./stockfish.js" onerror="window.__fairyLoaderError=true"></script>
 <script>
 (()=>{
 "use strict";
@@ -467,6 +470,7 @@ let state, turn, selected, legal, lastMove, history, gameOver, epSquare, pending
 let fairyEngine=null, fairyReady=false, fairyBusy=false, fairyQueue=[];
 let fairyInitPromise=null;
 let fairyLastSearchOk=null; // null=not tested, true=last move from Fairy, false=fallback
+let fairyFailureReason="";
 const FAIRY_VARIANT="capablanca";
 
 function fairySend(cmd){ if(fairyEngine) fairyEngine.postMessage(cmd); }
@@ -498,7 +502,8 @@ async function initFairy(){
  if(fairyInitPromise)return fairyInitPromise;
  fairyInitPromise=(async()=>{
   try{
-   if(typeof Stockfish!=="function")throw new Error("Fairy loader unavailable");
+   if(window.__fairyLoaderError)throw new Error("local stockfish.js not found");
+   if(typeof Stockfish!=="function")throw new Error("local Fairy loader unavailable");
    fairyEngine=await Stockfish();
    fairyEngine.addMessageListener(fairyOnLine);
    fairySend("uci"); await fairyWait(x=>x==="uciok",5000);
@@ -507,9 +512,10 @@ async function initFairy(){
    fairySend("setoption name Hash value 32");
    applyFairyStrength();
    fairySend("isready"); await fairyWait(x=>x==="readyok",5000);
-   fairyReady=true; fairyLastSearchOk=null; updateStrengthStatus(); return true;
+   fairyReady=true; fairyFailureReason=""; fairyLastSearchOk=null; updateStrengthStatus(); return true;
   }catch(e){
    console.warn("Fairy-Stockfish unavailable; local fallback",e);
+   fairyFailureReason=String(e&&e.message||e||"невідома помилка");
    fairyReady=false; fairyLastSearchOk=false; fairyEngine=null; fairyInitPromise=null; updateStrengthStatus(); return false;
   }
  })();
@@ -643,7 +649,7 @@ function updateStrengthStatus(){
  }else if(fairyReady && fairyLastSearchOk===null){
   label=`Fairy-Stockfish: ГОТОВИЙ · ${strengthLevel()}/8 ${p.name}`; cls="active";
  }else if(fairyLastSearchOk===false){
-  label=`Fairy-Stockfish: НЕ АКТИВНИЙ · резервний ШІ`; cls="fallback";
+  label=`Fairy-Stockfish: НЕ АКТИВНИЙ · ${fairyFailureReason||"резервний ШІ"}`; cls="fallback";
  }else{
   label=`Fairy-Stockfish: перевірка…`; cls="loading";
  }
