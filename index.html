@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script src="./coi-serviceworker.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Шахи Капабланки 10×8 · v5.8.3 FAIRY COI</title>
+<title>Шахи Капабланки 10×8 · v5.8.4 FAIRY KING+KNIGHT</title>
 <style>
 :root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
 *{box-sizing:border-box}
@@ -202,7 +202,7 @@ body:not(.real3d) .cameraControls{display:none}
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.8.3 TEST · FAIRY COI</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.8.4 · FAIRY KING+KNIGHT</span></div>
  <div id="engineIndicator" class="engineIndicator loading"><span class="dot"></span><span id="engineIndicatorText">Fairy-Stockfish: перевірка…</span></div>
  <div class="layout">
   <aside class="panel left">
@@ -465,14 +465,27 @@ const resultIcon=document.getElementById("resultIcon"), resultTitle=document.get
 let state, turn, selected, legal, lastMove, history, gameOver, epSquare, pendingPromotion;
 
 
-// --- v5.8 Fairy-Stockfish bridge --------------------------------------------
-// Classical Capablanca only. Red = UCI white, green = UCI black.
-// Author variants deliberately keep the known-good local engine.
+// --- v5.8.4 Fairy-Stockfish bridge ------------------------------------------
+// Capablanca and Capablanca with a royal KN king. Red = UCI white.
+// Emergency-escape variants still use the local engine.
 let fairyEngine=null, fairyReady=false, fairyBusy=false, fairyQueue=[];
-let fairyInitPromise=null;
+let fairyInitPromise=null, fairyOperation=Promise.resolve();
+let fairyVariants=new Set(), fairyKingKnightReady=false, fairyKingKnightError="";
+let fairySelectedVariant=null, fairyGameGeneration=-1;
+let gameGeneration=0, aiTurnRequest=null;
 let fairyLastSearchOk=null; // null=not tested, true=last move from Fairy, false=fallback
 let fairyFailureReason="";
-const FAIRY_VARIANT="capablanca";
+const FAIRY_VARIANTS={classic:"capablanca",kingKnight:"capablanca_kingknight"};
+// Keep the config inline: updating index.html is sufficient with the existing
+// fairy-stockfish-nnue.wasm 1.1.12 files. No new network request or C++ patch.
+const FAIRY_KING_KNIGHT_CONFIG="[capablanca_kingknight:capablanca]\nking = k:KN\n";
+
+function fairyVariant(){return FAIRY_VARIANTS[variant()]||null}
+function currentAiRequest(request){
+ return request.generation===gameGeneration && request.variant===variant() &&
+  !gameOver && modeEl.value==="ai" && turn===request.side && turn===aiSide() &&
+  request.fen===stateToFen();
+}
 
 function fairySend(cmd){ if(fairyEngine) fairyEngine.postMessage(cmd); }
 function fairyWait(pred,timeout=10000){
@@ -487,10 +500,28 @@ function fairyWait(pred,timeout=10000){
 }
 function fairyOnLine(line){
  line=String(line||"").trim();
+ if(line.startsWith("option name UCI_Variant type combo")){
+  fairyVariants=new Set([...line.matchAll(/\bvar (\S+)/g)].map(m=>m[1]));
+ }
  for(let i=0;i<fairyQueue.length;i++){
   const q=fairyQueue[i];
   if(q.pred(line)){ fairyQueue.splice(i,1); clearTimeout(q.timer); q.resolve(line); break; }
  }
+}
+function fairyCommand(cmd,pred,timeout=10000){
+ // Subscribe before sending: some engine replies can be synchronous.
+ const response=fairyWait(pred,timeout);
+ fairySend(cmd);
+ return response;
+}
+function discardFairy(){
+ const old=fairyEngine;
+ fairyEngine=null; fairyReady=false; fairyKingKnightReady=false;
+ fairySelectedVariant=null; fairyGameGeneration=-1;
+ for(const q of fairyQueue.splice(0)){
+  clearTimeout(q.timer); q.reject(new Error("Fairy-Stockfish stopped"));
+ }
+ if(old&&typeof old.terminate==="function")old.terminate();
 }
 function fairySkill(){ return [0,0,2,5,8,12,16,19,20][strengthLevel()]; }
 function fairyMoveTime(){ return [0,100,160,260,450,750,1200,2200,4200][strengthLevel()]; }
@@ -501,26 +532,48 @@ function applyFairyStrength(){
 async function initFairy(){
  if(fairyReady)return true;
  if(fairyInitPromise)return fairyInitPromise;
- fairyInitPromise=(async()=>{
+ const attempt=(async()=>{
   try{
    if(window.__fairyLoaderError)throw new Error("local stockfish.js not found");
    if(typeof Stockfish!=="function")throw new Error("local Fairy loader unavailable");
    fairyEngine=await Stockfish();
    fairyEngine.addMessageListener(fairyOnLine);
-   fairySend("uci"); await fairyWait(x=>x==="uciok",5000);
-   fairySend(`setoption name UCI_Variant value ${FAIRY_VARIANT}`);
+   await fairyCommand("uci",x=>x==="uciok",5000);
+   if(!fairyVariants.has("capablanca"))throw new Error("рушій не підтримує Капабланку");
    fairySend("setoption name Threads value 1");
    fairySend("setoption name Hash value 32");
+   fairyKingKnightReady=false;
+   fairyKingKnightError="потрібен Fairy-Stockfish із підтримкою власних варіантів";
+   if(typeof fairyEngine.FS?.writeFile==="function"){
+    fairyEngine.FS.writeFile("/capablanca-kingknight.ini",FAIRY_KING_KNIGHT_CONFIG);
+    fairySend("setoption name VariantPath value /capablanca-kingknight.ini");
+    await fairyCommand("uci",x=>x==="uciok",5000);
+    if(fairyVariants.has(FAIRY_VARIANTS.kingKnight)){
+     fairySend(`setoption name UCI_Variant value ${FAIRY_VARIANTS.kingKnight}`);
+     // A central KN king has 16 safe moves here; a standard king has only 8.
+     // This verifies the movement itself, not just the variant's registration.
+     fairySend("position fen 9k/10/10/10/4K5/10/10/10 w - - 0 1");
+     const probe=await fairyCommand("go perft 1",x=>/^Nodes searched:\s*\d+/.test(x),5000);
+     fairyKingKnightReady=/^Nodes searched:\s*16\s*$/.test(probe);
+     fairyKingKnightError=fairyKingKnightReady?"":"рушій не підтвердив хід короля як коня";
+    }
+   }
+   fairySend("setoption name UCI_Variant value capablanca");
+   fairySelectedVariant="capablanca";
+   fairySend("ucinewgame");
+   fairySend("position startpos");
    applyFairyStrength();
-   fairySend("isready"); await fairyWait(x=>x==="readyok",5000);
+   await fairyCommand("isready",x=>x==="readyok",5000);
    fairyReady=true; fairyFailureReason=""; fairyLastSearchOk=null; updateStrengthStatus(); return true;
   }catch(e){
    console.warn("Fairy-Stockfish unavailable; local fallback",e);
    fairyFailureReason=String(e&&e.message||e||"невідома помилка");
-   fairyReady=false; fairyLastSearchOk=false; fairyEngine=null; fairyInitPromise=null; updateStrengthStatus(); return false;
+   discardFairy(); fairyLastSearchOk=false; updateStrengthStatus(); return false;
   }
  })();
- return fairyInitPromise;
+ fairyInitPromise=attempt;
+ try{return await attempt}
+ finally{if(fairyInitPromise===attempt)fairyInitPromise=null}
 }
 function fenPiece(p){
  const map={P:"p",N:"n",B:"b",R:"r",Q:"q",K:"k",A:"a",C:"c"};
@@ -547,30 +600,59 @@ function stateToFen(){
  return `${rows.join("/")} ${turn==="r"?"w":"b"} ${rights} ${ep} 0 ${Math.floor(history.length/2)+1}`;
 }
 function uciToMove(uci){
- if(!uci||uci==="(none)"||uci.length<4)return null;
+ if(!/^[a-j][1-8][a-j][1-8][qrbnac]?$/.test(uci||""))return null;
  const fc=FILES.indexOf(uci[0]),fr=8-parseInt(uci[1],10),tc=FILES.indexOf(uci[2]),tr=8-parseInt(uci[3],10);
  if(fc<0||tc<0||!inside(fr,fc)||!inside(tr,tc))return null;
  let m=allLegalMoves(state,turn,epSquare).find(x=>x.fr===fr&&x.fc===fc&&x.tr===tr&&x.tc===tc);
  if(!m)return null;
- if(uci[4]){const pm={q:"Q",r:"R",b:"B",n:"N",a:"A",c:"C"};m={...m,promote:pm[uci[4].toLowerCase()]||"Q"}}
+ if(uci[4]){
+  if(state[fr][fc]?.t!=="P"||(tr!==0&&tr!==7))return null;
+  const pm={q:"Q",r:"R",b:"B",n:"N",a:"A",c:"C"};m={...m,promote:pm[uci[4]]};
+ }
  return m;
 }
-async function fairyBestMove(){
- if(!await initFairy())return null;
- fairyBusy=true;
- try{
-  fairySend("stop");
-  fairySend(`setoption name UCI_Variant value ${FAIRY_VARIANT}`);
-  applyFairyStrength();
-  fairySend(`position fen ${stateToFen()}`);
-  fairySend("isready"); await fairyWait(x=>x==="readyok",5000);
-  fairySend(`go movetime ${fairyMoveTime()}`);
-  const line=await fairyWait(x=>x.startsWith("bestmove "),fairyMoveTime()+8000);
-  const mv=uciToMove(line.split(/\s+/)[1]);
-  fairyLastSearchOk=!!mv; updateStrengthStatus();
-  return mv;
- }catch(e){console.warn("Fairy search failed; local fallback",e);fairyLastSearchOk=false;updateStrengthStatus();return null}
- finally{fairyBusy=false}
+function fairyBestMove(request){
+ const run=async()=>{
+  if(!currentAiRequest(request)||!await initFairy()||!currentAiRequest(request))return null;
+  if(request.variant==="kingKnight"&&!fairyKingKnightReady){
+   fairyLastSearchOk=false; updateStrengthStatus(); return null;
+  }
+  fairyBusy=true;
+  try{
+   const engineVariant=FAIRY_VARIANTS[request.variant];
+   if(!engineVariant)return null;
+   if(fairySelectedVariant!==engineVariant){
+    fairySend(`setoption name UCI_Variant value ${engineVariant}`);
+    fairySelectedVariant=engineVariant;
+   }
+   if(fairyGameGeneration!==request.generation){
+    fairySend("ucinewgame"); fairyGameGeneration=request.generation;
+   }
+   applyFairyStrength();
+   fairySend(`position fen ${request.fen}`);
+   await fairyCommand("isready",x=>x==="readyok",5000);
+   if(!currentAiRequest(request))return null;
+   const moveTime=fairyMoveTime();
+   const line=await fairyCommand(`go movetime ${moveTime}`,x=>x.startsWith("bestmove "),moveTime+8000);
+   if(!currentAiRequest(request))return null;
+   const mv=uciToMove(line.split(/\s+/)[1]);
+   fairyLastSearchOk=!!mv;
+   fairyFailureReason=mv?"":"рушій повернув хід, який не відповідає правилам позиції";
+   updateStrengthStatus(); return mv;
+  }catch(e){
+   console.warn("Fairy search failed; local fallback",e);
+   discardFairy();
+   if(currentAiRequest(request)){
+    fairyFailureReason=String(e&&e.message||e);
+    fairyLastSearchOk=false; updateStrengthStatus();
+   }
+   return null;
+  }finally{fairyBusy=false}
+ };
+ // Drain a stopped search before changing variant or starting a new one.
+ const result=fairyOperation.then(run,run);
+ fairyOperation=result.then(()=>{},()=>{});
+ return result;
 }
 
 function variant(){return variantEl.value}
@@ -643,12 +725,15 @@ function updateStrengthStatus(){
  const ind=document.getElementById("engineIndicator");
  const txt=document.getElementById("engineIndicatorText");
  let label="", cls="loading";
- if(variant()!=="classic"){
+ const ruleLabel=variant()==="kingKnight"?" · король + кінь":"";
+ if(!fairyVariant()){
   label=`Вбудований ШІ: ${strengthLevel()}/8 ${p.name}`; cls="local";
+ }else if(fairyReady&&variant()==="kingKnight"&&!fairyKingKnightReady){
+  label=`Вбудований ШІ: ${fairyKingKnightError}`; cls="fallback";
  }else if(fairyReady && fairyLastSearchOk===true){
-  label=`Fairy-Stockfish: АКТИВНИЙ · ${strengthLevel()}/8 ${p.name}`; cls="active";
+  label=`Fairy-Stockfish: АКТИВНИЙ${ruleLabel} · ${strengthLevel()}/8 ${p.name}`; cls="active";
  }else if(fairyReady && fairyLastSearchOk===null){
-  label=`Fairy-Stockfish: ГОТОВИЙ · ${strengthLevel()}/8 ${p.name}`; cls="active";
+  label=`Fairy-Stockfish: ГОТОВИЙ${ruleLabel} · ${strengthLevel()}/8 ${p.name}`; cls="active";
  }else if(fairyLastSearchOk===false){
   label=`Fairy-Stockfish: НЕ АКТИВНИЙ · ${fairyFailureReason||"резервний ШІ"}`; cls="fallback";
  }else{
@@ -675,6 +760,9 @@ function initialState(){
 }
 
 function reset(){
+ gameGeneration++; aiTurnRequest=null;
+ if(fairyBusy)fairySend("stop");
+ fairyLastSearchOk=null;
  // IMPORTANT: initialize game state first. UI/orientation/3D are synchronized only after state exists.
  state=initialState(); turn="r"; selected=null; legal=[]; lastMove=null; history=[]; gameOver=false; epSquare=null; pendingPromotion=null;
  resultOverlay.classList.remove("show"); promoOverlay.classList.remove("show");
@@ -682,7 +770,12 @@ function reset(){
  applyBoardOrientation();
  applyViewMode();
  render(); renderMoves();
- if(modeEl.value==="ai"&&aiSide()==="r")setTimeout(()=>{if(!gameOver&&turn===aiSide())aiTurn()},250);
+ updateStrengthStatus();
+ if(modeEl.value==="ai"&&fairyVariant())void initFairy();
+ if(modeEl.value==="ai"&&aiSide()==="r"){
+  const generation=gameGeneration;
+  setTimeout(()=>{if(generation===gameGeneration&&!gameOver&&turn===aiSide())aiTurn()},250);
+ }
 }
 
 function findKing(s,color){
@@ -914,7 +1007,7 @@ function commitMove(m){
  if(arrived.t==="P"&&(m.tr===0||m.tr===7)){
   if(modeEl.value==="ai"&&arrived.c===aiSide()){
    arrived.t=m.promote||"Q";
-   finishTurn(noteBase+"=Q");
+   finishTurn(noteBase+"="+arrived.t);
    return;
   }
   pendingPromotion={m,noteBase,color:arrived.c};
@@ -931,7 +1024,8 @@ function finishTurn(note){
  render(); renderMoves();
  if(checkGameEnd())return;
  if(modeEl.value==="ai"&&turn===aiSide()&&!gameOver){
-  setTimeout(aiTurn,120);
+  const generation=gameGeneration;
+  setTimeout(()=>{if(generation===gameGeneration)aiTurn()},120);
  }
 }
 
@@ -1233,13 +1327,21 @@ function localAiTurn(){
 }
 async function aiTurn(){
  if(gameOver||modeEl.value!=="ai"||turn!==aiSide())return;
- if(variant()==="classic"){
-  updateStrengthStatus();
-  const m=await fairyBestMove();
-  if(gameOver||turn!==aiSide())return;
-  if(m){updateStrengthStatus();commitMove(m);return}
+ if(aiTurnRequest&&currentAiRequest(aiTurnRequest))return;
+ if(checkGameEnd())return;
+ const request={generation:gameGeneration,variant:variant(),side:turn,fen:stateToFen()};
+ aiTurnRequest=request;
+ try{
+  if(fairyVariant()){
+   updateStrengthStatus();
+   const m=await fairyBestMove(request);
+   if(!currentAiRequest(request))return;
+   if(m){updateStrengthStatus();commitMove(m);return}
+  }
+  if(currentAiRequest(request))localAiTurn();
+ }finally{
+  if(aiTurnRequest===request)aiTurnRequest=null;
  }
- localAiTurn();
 }
 
 
