@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script src="./coi-serviceworker.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Шахи Капабланки 10×8 · v5.8.4 FAIRY KING+KNIGHT</title>
+<title>Шахи Капабланки 10×8 · v5.8.5 FAIRY · 16 рівнів</title>
 <style>
 :root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
 *{box-sizing:border-box}
@@ -198,11 +198,19 @@ body:not(.real3d) .cameraControls{display:none}
 .engineIndicator.loading{color:#e5d28a;border-color:#786d3a}
 @media(max-width:900px){.engineIndicator{margin:6px 0 10px;font-size:12px}}
 
+/* One compact native selector; grouped text choices also work on iPhone. */
+.strengthControl{min-width:0}
+.strengthSelect{font-size:14px;max-width:100%;min-height:44px}
+.strengthSelect:focus-visible{outline:2px solid #9fd37e;outline-offset:2px}
+.strengthHint{margin:5px 2px 2px;font-size:11px;line-height:1.35;color:#bdbdbd}
+.strengthSelect optgroup{color:#9fd37e;background:#262626}
+.strengthSelect option{color:#fff;background:#303030;font-weight:400}
+@media(max-width:900px){.strengthHint{margin:4px 10px 6px}}
 </style>
 </head>
 <body>
 <div class="app">
- <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.8.4 · FAIRY KING+KNIGHT</span></div>
+ <div class="brand">Шахи Капабланки 10×8 <span class="badge">v5.8.5 · FAIRY · 16 РІВНІВ</span></div>
  <div id="engineIndicator" class="engineIndicator loading"><span class="dot"></span><span id="engineIndicatorText">Fairy-Stockfish: перевірка…</span></div>
  <div class="layout">
   <aside class="panel left">
@@ -213,16 +221,12 @@ body:not(.real3d) .cameraControls{display:none}
      <option value="escape">Аварійний вихід через свою фігуру</option>
      <option value="both">Обидва ваші правила</option>
     </select>
-    <select id="strength">
-     <option value="1">1 · Новачок</option>
-     <option value="2">2 · Початківець</option>
-     <option value="3">3 · Учень</option>
-     <option value="4" selected>4 · Досвідчений</option>
-     <option value="5">5 · Сильний гравець</option>
-     <option value="6">6 · Експерт</option>
-     <option value="7">7 · Майстер</option>
-     <option value="8">8 · Гросмейстер</option>
-    </select><select id="humanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
+    <div class="strengthControl">
+     <select id="strength" class="strengthSelect" aria-label="Складність комп’ютера" aria-describedby="strengthHint">
+      <option value="4" selected>4 · Учень · 1000</option>
+     </select>
+     <div id="strengthHint" class="strengthHint">Бали — умовний рейтинг нашої гри, не Elo.</div>
+    </div><select id="humanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
     <select id="viewMode">
      <option value="3d" selected>Вигляд: 3D</option>
      <option value="2d">Вигляд: 2D</option>
@@ -260,16 +264,12 @@ body:not(.real3d) .cameraControls{display:none}
      <option value="escape">Аварійний вихід через свою фігуру</option>
      <option value="both">Обидва ваші правила</option>
     </select>
-    <select id="mobileStrength">
-     <option value="1">1 · Новачок</option>
-     <option value="2">2 · Початківець</option>
-     <option value="3">3 · Учень</option>
-     <option value="4" selected>4 · Досвідчений</option>
-     <option value="5">5 · Сильний</option>
-     <option value="6">6 · Експерт</option>
-     <option value="7">7 · Майстер</option>
-     <option value="8">8 · Гросмейстер</option>
-    </select><select id="mobileHumanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
+    <div class="strengthControl">
+     <select id="mobileStrength" class="strengthSelect" aria-label="Складність комп’ютера" aria-describedby="mobileStrengthHint">
+      <option value="4" selected>4 · Учень · 1000</option>
+     </select>
+     <div id="mobileStrengthHint" class="strengthHint">Бали — умовний рейтинг нашої гри, не Elo.</div>
+    </div><select id="mobileHumanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
     <select id="mobileViewMode">
      <option value="3d" selected>Вигляд: 3D</option>
      <option value="2d">Вигляд: 2D</option>
@@ -465,7 +465,7 @@ const resultIcon=document.getElementById("resultIcon"), resultTitle=document.get
 let state, turn, selected, legal, lastMove, history, gameOver, epSquare, pendingPromotion;
 
 
-// --- v5.8.4 Fairy-Stockfish bridge ------------------------------------------
+// --- v5.8.5 Fairy-Stockfish bridge ------------------------------------------
 // Capablanca and Capablanca with a royal KN king. Red = UCI white.
 // Emergency-escape variants still use the local engine.
 let fairyEngine=null, fairyReady=false, fairyBusy=false, fairyQueue=[];
@@ -523,11 +523,12 @@ function discardFairy(){
  }
  if(old&&typeof old.terminate==="function")old.terminate();
 }
-function fairySkill(){ return [0,0,2,5,8,12,16,19,20][strengthLevel()]; }
-function fairyMoveTime(){ return [0,100,160,260,450,750,1200,2200,4200][strengthLevel()]; }
-function applyFairyStrength(){
+function applyFairyStrength(profile=strengthProfile()){
  if(!fairyEngine)return;
- fairySend(`setoption name Skill Level value ${fairySkill()}`);
+ // Apply only before a search or during initialization. UI changes never send
+ // options into a running search. Points are our labels, not UCI_Elo targets.
+ fairySend("setoption name UCI_LimitStrength value false");
+ fairySend(`setoption name Skill Level value ${profile.skill}`);
 }
 async function initFairy(){
  if(fairyReady)return true;
@@ -628,11 +629,11 @@ function fairyBestMove(request){
    if(fairyGameGeneration!==request.generation){
     fairySend("ucinewgame"); fairyGameGeneration=request.generation;
    }
-   applyFairyStrength();
+   applyFairyStrength(request.strength);
    fairySend(`position fen ${request.fen}`);
    await fairyCommand("isready",x=>x==="readyok",5000);
    if(!currentAiRequest(request))return null;
-   const moveTime=fairyMoveTime();
+   const moveTime=request.strength.moveTime;
    const line=await fairyCommand(`go movetime ${moveTime}`,x=>x.startsWith("bestmove "),moveTime+8000);
    if(!currentAiRequest(request))return null;
    const mv=uciToMove(line.split(/\s+/)[1]);
@@ -702,22 +703,53 @@ function updateSideLabels(){
  }
 }
 
+// A single table drives labels, points, Fairy strength and the local fallback.
+// Points are an uncalibrated in-game scale for the selected rules and engine.
+const STRENGTH_LEVELS=Object.freeze([
+ {"level":1,"group":"Перші кроки","name":"Перше знайомство","points":400,"skill":-20,"moveTime":60,"time":40,"depth":1,"slip":0.65,"window":14},
+ {"level":2,"group":"Перші кроки","name":"Новачок","points":600,"skill":-16,"moveTime":80,"time":60,"depth":1,"slip":0.55,"window":12},
+ {"level":3,"group":"Перші кроки","name":"Початківець","points":800,"skill":-12,"moveTime":100,"time":80,"depth":1,"slip":0.45,"window":10},
+ {"level":4,"group":"Перші кроки","name":"Учень","points":1000,"skill":-8,"moveTime":120,"time":110,"depth":1,"slip":0.35,"window":8},
+ {"level":5,"group":"Аматорський рівень","name":"Аматор","points":1100,"skill":-4,"moveTime":160,"time":140,"depth":2,"slip":0.28,"window":7},
+ {"level":6,"group":"Аматорський рівень","name":"Практик","points":1200,"skill":0,"moveTime":200,"time":180,"depth":2,"slip":0.22,"window":6},
+ {"level":7,"group":"Аматорський рівень","name":"Досвідчений","points":1300,"skill":2,"moveTime":280,"time":230,"depth":2,"slip":0.16,"window":5},
+ {"level":8,"group":"Аматорський рівень","name":"Клубний гравець","points":1400,"skill":4,"moveTime":380,"time":320,"depth":2,"slip":0.1,"window":4},
+ {"level":9,"group":"Сильна гра","name":"Тактик","points":1500,"skill":6,"moveTime":500,"time":450,"depth":2,"slip":0.07,"window":4},
+ {"level":10,"group":"Сильна гра","name":"Стратег","points":1600,"skill":8,"moveTime":700,"time":650,"depth":3,"slip":0.04,"window":3},
+ {"level":11,"group":"Сильна гра","name":"Сильний аматор","points":1800,"skill":10,"moveTime":1000,"time":850,"depth":3,"slip":0.025,"window":3},
+ {"level":12,"group":"Сильна гра","name":"Експерт","points":2000,"skill":12,"moveTime":1400,"time":1100,"depth":3,"slip":0.01,"window":2},
+ {"level":13,"group":"Майстерність","name":"Кандидат","points":2200,"skill":14,"moveTime":1900,"time":1600,"depth":4,"slip":0,"window":1},
+ {"level":14,"group":"Майстерність","name":"Майстер","points":2400,"skill":16,"moveTime":2600,"time":2100,"depth":4,"slip":0,"window":1},
+ {"level":15,"group":"Майстерність","name":"Гросмейстер","points":2600,"skill":18,"moveTime":3400,"time":3000,"depth":4,"slip":0,"window":1},
+ {"level":16,"group":"Майстерність","name":"Максимум","points":2800,"skill":20,"moveTime":4200,"time":4200,"depth":4,"slip":0,"window":1},
+].map(p=>Object.freeze(p)));
 function strengthLevel(){
- const n=parseInt(strengthEl.value||"4",10);
- return Math.max(1,Math.min(8,n));
+ const n=Number(strengthEl.value);
+ return Number.isInteger(n)?Math.max(1,Math.min(STRENGTH_LEVELS.length,n)):4;
 }
-function strengthProfile(){
- const p={
-  1:{name:"Новачок",time:70,depth:1,slip:0.42,window:7},
-  2:{name:"Початківець",time:110,depth:1,slip:0.28,window:6},
-  3:{name:"Учень",time:180,depth:2,slip:0.16,window:5},
-  4:{name:"Досвідчений",time:320,depth:2,slip:0.08,window:4},
-  5:{name:"Сильний гравець",time:650,depth:3,slip:0.03,window:3},
-  6:{name:"Експерт",time:1100,depth:3,slip:0.01,window:2},
-  7:{name:"Майстер",time:2100,depth:4,slip:0,window:1},
-  8:{name:"Гросмейстер",time:4200,depth:4,slip:0,window:1}
- };
- return p[strengthLevel()];
+function strengthProfile(){return STRENGTH_LEVELS[strengthLevel()-1]}
+function populateStrengthSelects(){
+ const selected=String(strengthLevel());
+ for(const select of [strengthEl,mobileStrength]){
+  select.innerHTML="";
+  let group=null;
+  for(const p of STRENGTH_LEVELS){
+   if(!group||group.label!==p.group){
+    group=document.createElement("optgroup"); group.label=p.group;
+    select.appendChild(group);
+   }
+   const option=document.createElement("option");
+   option.value=String(p.level);
+   option.textContent=`${p.level} · ${p.name} · ${p.points}`;
+   group.appendChild(option);
+  }
+  select.value=selected;
+ }
+}
+function selectStrength(value){
+ strengthEl.value=String(value);
+ strengthEl.value=mobileStrength.value=String(strengthLevel());
+ updateStrengthStatus();
 }
 function updateStrengthStatus(){
  const p=strengthProfile();
@@ -726,16 +758,22 @@ function updateStrengthStatus(){
  const txt=document.getElementById("engineIndicatorText");
  let label="", cls="loading";
  const ruleLabel=variant()==="kingKnight"?" · король + кінь":"";
+ const levelLabel=`${p.level}/${STRENGTH_LEVELS.length} ${p.name} · ${p.points} балів`;
+ const pending=aiTurnRequest&&currentAiRequest(aiTurnRequest)&&aiTurnRequest.strength.level!==p.level;
+ const hint="Бали — умовний рейтинг нашої гри, не Elo."+(pending?" Новий рівень діятиме з наступного ходу комп’ютера.":"");
+ for(const id of ["strengthHint","mobileStrengthHint"]){
+  const el=document.getElementById(id); if(el)el.textContent=hint;
+ }
  if(!fairyVariant()){
-  label=`Вбудований ШІ: ${strengthLevel()}/8 ${p.name}`; cls="local";
+  label=`Вбудований ШІ: ${levelLabel}`; cls="local";
  }else if(fairyReady&&variant()==="kingKnight"&&!fairyKingKnightReady){
-  label=`Вбудований ШІ: ${fairyKingKnightError}`; cls="fallback";
+  label=`Вбудований ШІ: ${levelLabel} · ${fairyKingKnightError}`; cls="fallback";
  }else if(fairyReady && fairyLastSearchOk===true){
-  label=`Fairy-Stockfish: АКТИВНИЙ${ruleLabel} · ${strengthLevel()}/8 ${p.name}`; cls="active";
+  label=`Fairy-Stockfish: АКТИВНИЙ${ruleLabel} · ${levelLabel}`; cls="active";
  }else if(fairyReady && fairyLastSearchOk===null){
-  label=`Fairy-Stockfish: ГОТОВИЙ${ruleLabel} · ${strengthLevel()}/8 ${p.name}`; cls="active";
+  label=`Fairy-Stockfish: ГОТОВИЙ${ruleLabel} · ${levelLabel}`; cls="active";
  }else if(fairyLastSearchOk===false){
-  label=`Fairy-Stockfish: НЕ АКТИВНИЙ · ${fairyFailureReason||"резервний ШІ"}`; cls="fallback";
+  label=`Fairy-Stockfish: НЕ АКТИВНИЙ · резервний ШІ ${levelLabel} · ${fairyFailureReason||"рушій недоступний"}`; cls="fallback";
  }else{
   label=`Fairy-Stockfish: перевірка…`; cls="loading";
  }
@@ -1303,13 +1341,12 @@ function searchRoot(depth,rootColor){
  return {move:bestMove,score:best};
 }
 
-function localAiTurn(){
+function localAiTurn(p=strengthProfile()){
  if(gameOver||modeEl.value!=="ai"||turn!==aiSide())return;
  const color=aiSide();
  const moves=orderedMoves(state,color,epSquare);
  if(!moves.length){checkGameEnd();return}
 
- const p=strengthProfile();
  AI_DEADLINE=performance.now()+p.time;
  let chosen=moves[0];
  for(let depth=1;depth<=p.depth;depth++){
@@ -1329,7 +1366,7 @@ async function aiTurn(){
  if(gameOver||modeEl.value!=="ai"||turn!==aiSide())return;
  if(aiTurnRequest&&currentAiRequest(aiTurnRequest))return;
  if(checkGameEnd())return;
- const request={generation:gameGeneration,variant:variant(),side:turn,fen:stateToFen()};
+ const request={generation:gameGeneration,variant:variant(),side:turn,fen:stateToFen(),strength:strengthProfile()};
  aiTurnRequest=request;
  try{
   if(fairyVariant()){
@@ -1338,9 +1375,9 @@ async function aiTurn(){
    if(!currentAiRequest(request))return;
    if(m){updateStrengthStatus();commitMove(m);return}
   }
-  if(currentAiRequest(request))localAiTurn();
+  if(currentAiRequest(request))localAiTurn(request.strength);
  }finally{
-  if(aiTurnRequest===request)aiTurnRequest=null;
+  if(aiTurnRequest===request){aiTurnRequest=null;updateStrengthStatus();}
  }
 }
 
@@ -1688,10 +1725,10 @@ document.getElementById("movesClose").addEventListener("click",()=>movesOverlay.
 
 
 strengthEl.addEventListener("change",()=>{
- mobileStrength.value=strengthEl.value; applyFairyStrength(); updateStrengthStatus();
+ selectStrength(strengthEl.value);
 });
 mobileStrength.addEventListener("change",()=>{
- strengthEl.value=mobileStrength.value; applyFairyStrength(); updateStrengthStatus();
+ selectStrength(mobileStrength.value);
 });
 
 
@@ -1734,6 +1771,7 @@ document.querySelectorAll("[data-promo]").forEach(btn=>btn.addEventListener("cli
 }));
 
 // Deterministic first-load initialization: no color-toggle workaround required.
+populateStrengthSelects();
 mobileVariant.value=variantEl.value;
 mobileStrength.value=strengthEl.value;
 mobileHumanSide.value=humanSideEl.value;
