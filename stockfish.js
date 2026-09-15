@@ -777,7 +777,7 @@ var tempDouble;
 var tempI64;
 
 var ASM_CONSTS = {
- 93251: function() {
+ 93379: function() {
   throw "Canceled!";
  }
 };
@@ -5447,9 +5447,9 @@ var _asyncify_stop_rewind = Module["_asyncify_stop_rewind"] = function() {
  return (_asyncify_stop_rewind = Module["_asyncify_stop_rewind"] = Module["asm"]["xa"]).apply(null, arguments);
 };
 
-var __emscripten_allow_main_runtime_queued_calls = Module["__emscripten_allow_main_runtime_queued_calls"] = 92480;
+var __emscripten_allow_main_runtime_queued_calls = Module["__emscripten_allow_main_runtime_queued_calls"] = 92608;
 
-var __emscripten_main_thread_futex = Module["__emscripten_main_thread_futex"] = 27065792;
+var __emscripten_main_thread_futex = Module["__emscripten_main_thread_futex"] = 27065920;
 
 Module["keepRuntimeAlive"] = keepRuntimeAlive;
 
