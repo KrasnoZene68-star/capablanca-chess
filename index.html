@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script src="./coi-serviceworker.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Шахи Капабланки 10×8 · v5.10.0 FAIRY · 16 рівнів</title>
+<title>Шахи Капабланки 10×8 · v5.10.1 FAIRY · 16 рівнів</title>
 <style>
 :root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
 *{box-sizing:border-box}
@@ -263,7 +263,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
 </head>
 <body>
 <div class="app">
- <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.10.0 · FAIRY · 16 РІВНІВ</span></div>
+ <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.10.1 · FAIRY · 16 РІВНІВ</span></div>
  <div id="engineIndicator" class="engineIndicator loading"><span class="dot"></span><span id="engineIndicatorText">Fairy-Stockfish: перевірка…</span></div>
  <div class="layout">
   <main>
@@ -469,6 +469,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
   <div class="resultTitle" style="font-size:25px">Запис партії</div>
   <div id="movesCount" style="color:#aaa;margin:4px 0 10px">Ходів: 0</div>
   <div id="mobileMoveList" class="moveList" style="text-align:left;max-height:55vh;overflow:auto"></div>
+  <button id="saveGame" style="margin-top:12px">Зберегти партію</button>
   <button id="movesClose" style="margin-top:12px">Закрити</button>
  </div>
 </div>
@@ -659,6 +660,7 @@ let fairySelectedVariant=null, fairyGameGeneration=-1;
 let gameGeneration=0, aiTurnRequest=null;
 let fairyLastSearchOk=null; // null=not tested, true=last move from Fairy, false=fallback
 let fairyFailureReason="";
+let fairySearchInfo=null, pendingMoveRecord=null, gameResult="*";
 const FAIRY_VARIANTS={classic:"capablanca",kingKnight:"capablanca_kingknight",escape:"capablanca_escape",both:"capablanca_both"};
 // The KN config remains inline. Variant III requires the bundled patched
 // stockfish.js / stockfish.wasm / stockfish.worker.js, built from 1.1.12 source.
@@ -689,6 +691,12 @@ function fairyWait(pred,timeout=10000){
 }
 function fairyOnLine(line){
  line=String(line||"").trim();
+ if(fairyBusy&&/^info depth /.test(line)&&(!/ multipv /.test(line)||/ multipv 1 /.test(line))){
+  const number=name=>{const m=line.match(new RegExp("(?:^| )"+name+" (\\d+)"));return m?Number(m[1]):null};
+  const score=line.match(/ score (cp|mate) (-?\d+)/),pv=line.match(/ pv (.+)$/);
+  fairySearchInfo={depth:number("depth"),nodes:number("nodes"),timeMs:number("time"),
+   score:score?{unit:score[1],value:Number(score[2]),perspective:"side-to-move"}:null,pv:pv?pv[1].split(" "):[]};
+ }
  if(line.startsWith("option name UCI_Variant type combo")){
   fairyVariants=new Set([...line.matchAll(/\bvar (\S+)/g)].map(m=>m[1]));
  }
@@ -837,7 +845,40 @@ function stateToFen(){
  if(gk?.t==="K"&&gk.c==="g"&&!gk.m){if(grR?.t==="R"&&grR.c==="g"&&!grR.m)rights+="k";if(grL?.t==="R"&&grL.c==="g"&&!grL.m)rights+="q"}
  if(!rights)rights="-";
  const ep=epSquare?(epSquare.targets||[epSquare]).map(e=>FILES[e.c]+(ROWS-e.r)).join(""):"-";
- return `${rows.join("/")} ${turn==="r"?"w":"b"} ${rights} ${ep} 0 ${Math.floor(history.length/2)+1}${ROWS===10?` t${tripleBudget(state).r},${tripleBudget(state).g}`:""}`;
+ return `${rows.join("/")} ${turn==="r"?"w":"b"} ${rights} ${ep} ${state.halfmoveClock||0} ${state.fullmoveNumber||1}${ROWS===10?` t${tripleBudget(state).r},${tripleBudget(state).g}`:""}`;
+}
+function moveToUci(m,promote){
+ return FILES[m.fc]+(ROWS-m.fr)+FILES[m.tc]+(ROWS-m.tr)+(promote?promote.toLowerCase():"");
+}
+function enginePositionCommand(){
+ const fen=stateToFen();
+ if(history.length&&history.every(h=>h.uci&&h.beforeFen&&h.afterFen)&&history[history.length-1].afterFen===fen){
+  return "position fen "+history[0].beforeFen+" moves "+history.map(h=>h.uci).join(" ");
+ }
+ return "position fen "+fen;
+}
+function repetitionKey(){
+ const f=stateToFen().split(" ");
+ // An EP marker changes repetition rights only if an EP capture is legal.
+ f[3]=epSquare?allLegalMoves(state,turn,epSquare).filter(m=>m.special==="ep").map(m=>FILES[m.tc]+(ROWS-m.tr)).sort().join(",")||"-":"-";
+ return f.slice(0,4).join(" ")+(ROWS===10?" "+f[6]:"");
+}
+function repetitionCount(){
+ const key=repetitionKey();
+ return (history.length&&history[0].beforeKey===key?1:0)+history.filter(h=>h.afterKey===key).length;
+}
+function gameReport(){
+ return {format:"capablanca-game-v1",appVersion:"5.10.1",engineBuild:"5.10.0",board:`10x${ROWS}`,
+  variant:variant(),engineVariant:fairyVariant(),result:gameResult,
+  strength:strengthProfile(),initialFen:history[0]?.beforeFen||stateToFen(),currentFen:stateToFen(),
+  uciPosition:enginePositionCommand(),moves:history.map(h=>({...h})),
+  engineStatus:{ready:fairyReady,lastSearchOk:fairyLastSearchOk,reason:fairyFailureReason}};
+}
+function saveGameReport(){
+ const blob=new Blob([JSON.stringify(gameReport(),null,2)],{type:"application/json;charset=utf-8"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="capablanca-"+new Date().toISOString().replace(/[:.]/g,"-")+".json";
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 function uciToMove(uci){
  const match=/^([a-j])(10|[1-9])([a-j])(10|[1-9])([qrbnac])?$/.exec(uci||"");
@@ -880,15 +921,18 @@ function fairyBestMove(request){
     fairySend("ucinewgame"); fairyGameGeneration=request.generation;
    }
    applyFairyStrength(request.strength);
-   fairySend(`position fen ${request.fen}`);
+   fairySend(request.position||`position fen ${request.fen}`);
    await fairyCommand("isready",x=>x==="readyok",5000);
    if(!currentAiRequest(request))return null;
    const moveTime=request.strength.moveTime;
-   const line=await fairyCommand(`go movetime ${moveTime}`,x=>x.startsWith("bestmove "),moveTime+8000);
+   fairySearchInfo=null;
+   const depth=request.strength.searchDepth;
+   const line=await fairyCommand(`go${depth?` depth ${depth}`:""} movetime ${moveTime}`,x=>x.startsWith("bestmove "),moveTime+8000);
    if(!currentAiRequest(request))return null;
    const mv=uciToMove(line.split(/\s+/)[1]);
    fairyLastSearchOk=!!mv;
    fairyFailureReason=mv?"":"рушій повернув хід, який не відповідає правилам позиції";
+   request.analysis=fairySearchInfo;
    updateStrengthStatus(); return mv;
   }catch(e){
    console.warn("Fairy search failed; local fallback",e);
@@ -956,22 +1000,214 @@ function updateSideLabels(){
 // A single table drives labels, points, Fairy strength and the local fallback.
 // Points are an uncalibrated in-game scale for the selected rules and engine.
 const STRENGTH_LEVELS=Object.freeze([
- {"level":1,"group":"Перші кроки","name":"Перше знайомство","points":400,"skill":-20,"moveTime":60,"time":40,"depth":1,"slip":0.65,"window":14},
- {"level":2,"group":"Перші кроки","name":"Новачок","points":600,"skill":-16,"moveTime":80,"time":60,"depth":1,"slip":0.55,"window":12},
- {"level":3,"group":"Перші кроки","name":"Початківець","points":800,"skill":-12,"moveTime":100,"time":80,"depth":1,"slip":0.45,"window":10},
- {"level":4,"group":"Перші кроки","name":"Учень","points":1000,"skill":-8,"moveTime":120,"time":110,"depth":1,"slip":0.35,"window":8},
- {"level":5,"group":"Аматорський рівень","name":"Аматор","points":1100,"skill":-4,"moveTime":160,"time":140,"depth":2,"slip":0.28,"window":7},
- {"level":6,"group":"Аматорський рівень","name":"Практик","points":1200,"skill":0,"moveTime":200,"time":180,"depth":2,"slip":0.22,"window":6},
- {"level":7,"group":"Аматорський рівень","name":"Досвідчений","points":1300,"skill":2,"moveTime":280,"time":230,"depth":2,"slip":0.16,"window":5},
- {"level":8,"group":"Аматорський рівень","name":"Клубний гравець","points":1400,"skill":4,"moveTime":380,"time":320,"depth":2,"slip":0.1,"window":4},
- {"level":9,"group":"Сильна гра","name":"Тактик","points":1500,"skill":6,"moveTime":500,"time":450,"depth":2,"slip":0.07,"window":4},
- {"level":10,"group":"Сильна гра","name":"Стратег","points":1600,"skill":8,"moveTime":700,"time":650,"depth":3,"slip":0.04,"window":3},
- {"level":11,"group":"Сильна гра","name":"Сильний аматор","points":1800,"skill":10,"moveTime":1000,"time":850,"depth":3,"slip":0.025,"window":3},
- {"level":12,"group":"Сильна гра","name":"Експерт","points":2000,"skill":12,"moveTime":1400,"time":1100,"depth":3,"slip":0.01,"window":2},
- {"level":13,"group":"Майстерність","name":"Кандидат","points":2200,"skill":14,"moveTime":1900,"time":1600,"depth":4,"slip":0,"window":1},
- {"level":14,"group":"Майстерність","name":"Майстер","points":2400,"skill":16,"moveTime":2600,"time":2100,"depth":4,"slip":0,"window":1},
- {"level":15,"group":"Майстерність","name":"Гросмейстер","points":2600,"skill":18,"moveTime":3400,"time":3000,"depth":4,"slip":0,"window":1},
- {"level":16,"group":"Майстерність","name":"Максимум","points":2800,"skill":20,"moveTime":4200,"time":4200,"depth":4,"slip":0,"window":1},
+ {
+  "level": 1,
+  "group": "Перші кроки",
+  "name": "Перше знайомство",
+  "points": 400,
+  "skill": 0,
+  "moveTime": 120,
+  "time": 40,
+  "depth": 1,
+  "slip": 0.65,
+  "window": 14,
+  "searchDepth": 2
+ },
+ {
+  "level": 2,
+  "group": "Перші кроки",
+  "name": "Новачок",
+  "points": 600,
+  "skill": 4,
+  "moveTime": 180,
+  "time": 60,
+  "depth": 1,
+  "slip": 0.55,
+  "window": 12,
+  "searchDepth": 3
+ },
+ {
+  "level": 3,
+  "group": "Перші кроки",
+  "name": "Початківець",
+  "points": 800,
+  "skill": 8,
+  "moveTime": 260,
+  "time": 80,
+  "depth": 1,
+  "slip": 0.45,
+  "window": 10,
+  "searchDepth": 4
+ },
+ {
+  "level": 4,
+  "group": "Перші кроки",
+  "name": "Учень",
+  "points": 1000,
+  "skill": 12,
+  "moveTime": 380,
+  "time": 110,
+  "depth": 1,
+  "slip": 0.35,
+  "window": 8,
+  "searchDepth": 5
+ },
+ {
+  "level": 5,
+  "group": "Аматорський рівень",
+  "name": "Аматор",
+  "points": 1100,
+  "skill": 20,
+  "moveTime": 550,
+  "time": 350,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 5
+ },
+ {
+  "level": 6,
+  "group": "Аматорський рівень",
+  "name": "Практик",
+  "points": 1200,
+  "skill": 20,
+  "moveTime": 750,
+  "time": 350,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 6
+ },
+ {
+  "level": 7,
+  "group": "Аматорський рівень",
+  "name": "Досвідчений",
+  "points": 1300,
+  "skill": 20,
+  "moveTime": 1000,
+  "time": 350,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 7
+ },
+ {
+  "level": 8,
+  "group": "Аматорський рівень",
+  "name": "Клубний гравець",
+  "points": 1400,
+  "skill": 20,
+  "moveTime": 1300,
+  "time": 350,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 8
+ },
+ {
+  "level": 9,
+  "group": "Сильна гра",
+  "name": "Тактик",
+  "points": 1500,
+  "skill": 20,
+  "moveTime": 1700,
+  "time": 700,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 9
+ },
+ {
+  "level": 10,
+  "group": "Сильна гра",
+  "name": "Стратег",
+  "points": 1600,
+  "skill": 20,
+  "moveTime": 2200,
+  "time": 700,
+  "depth": 3,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 10
+ },
+ {
+  "level": 11,
+  "group": "Сильна гра",
+  "name": "Сильний аматор",
+  "points": 1800,
+  "skill": 20,
+  "moveTime": 2800,
+  "time": 850,
+  "depth": 3,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 11
+ },
+ {
+  "level": 12,
+  "group": "Сильна гра",
+  "name": "Експерт",
+  "points": 2000,
+  "skill": 20,
+  "moveTime": 3500,
+  "time": 1100,
+  "depth": 3,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 12
+ },
+ {
+  "level": 13,
+  "group": "Майстерність",
+  "name": "Кандидат",
+  "points": 2200,
+  "skill": 20,
+  "moveTime": 4300,
+  "time": 1600,
+  "depth": 4,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 14
+ },
+ {
+  "level": 14,
+  "group": "Майстерність",
+  "name": "Майстер",
+  "points": 2400,
+  "skill": 20,
+  "moveTime": 5200,
+  "time": 2100,
+  "depth": 4,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 16
+ },
+ {
+  "level": 15,
+  "group": "Майстерність",
+  "name": "Гросмейстер",
+  "points": 2600,
+  "skill": 20,
+  "moveTime": 6300,
+  "time": 3000,
+  "depth": 4,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 18
+ },
+ {
+  "level": 16,
+  "group": "Майстерність",
+  "name": "Максимум",
+  "points": 2800,
+  "skill": 20,
+  "moveTime": 7500,
+  "time": 4200,
+  "depth": 4,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": null
+ }
 ].map(p=>Object.freeze(p)));
 function strengthLevel(){
  const n=Number(strengthEl.value);
@@ -1010,10 +1246,10 @@ function updateStrengthStatus(){
  const ruleLabel=variant()==="both"?" · король + кінь + аварійний вихід":variant()==="kingKnight"?" · король + кінь":variant()==="escape"?" · аварійний вихід":"";
  const levelLabel=`${p.level}/${STRENGTH_LEVELS.length} ${p.name} · ${p.points} балів`;
  const pending=aiTurnRequest&&currentAiRequest(aiTurnRequest)&&aiTurnRequest.strength.level!==p.level;
- const strengthNote=p.skill<0
-  ?" Навчальний рівень: комп’ютер часто помиляється. Для сильнішої гри оберіть 10–16."
+ const strengthNote=p.level<=4
+  ?" Навчальний рівень із навмисними помилками. Від рівня 5 — без випадкового послаблення."
   :p.level===16?" Максимальна сила в межах часу на хід."
-  :" Рівень 16 — максимальна сила.";
+  :" Сила залежить від глибини й часу розрахунку. Рівень 16 — максимальна сила.";
  const hint="Бали — умовний рейтинг нашої гри, не Elo."+strengthNote+(pending?" Новий рівень діятиме з наступного ходу комп’ютера.":"");
  for(const id of ["strengthHint","mobileStrengthHint"]){
   const el=document.getElementById(id); if(el)el.textContent=hint;
@@ -1045,11 +1281,12 @@ function updateStrengthStatus(){
 function enemy(c){return c==="r"?"g":"r"}
 function inside(r,c){return r>=0&&r<ROWS&&c>=0&&c<10}
 function tripleBudget(s){return s.tripleRemaining||{r:ROWS===10?2:0,g:ROWS===10?2:0}}
-function cloneState(s){const ns=s.map(row=>row.map(p=>p?{...p}:null));ns.tripleRemaining={...tripleBudget(s)};return ns}
+function cloneState(s){const ns=s.map(row=>row.map(p=>p?{...p}:null));ns.tripleRemaining={...tripleBudget(s)};ns.halfmoveClock=s.halfmoveClock||0;ns.fullmoveNumber=s.fullmoveNumber||1;return ns}
 
 function initialState(){
  const s=Array.from({length:ROWS},()=>Array(10).fill(null));
  s.tripleRemaining={r:ROWS===10?2:0,g:ROWS===10?2:0};
+ s.halfmoveClock=0;s.fullmoveNumber=1;
  for(let c=0;c<10;c++){
   s[0][c]={c:"g",t:BACK[c],m:false};
   s[1][c]={c:"g",t:"P",m:false};
@@ -1069,7 +1306,7 @@ function rebuildBoard(){
   sq.addEventListener("click",onSquare);boardEl.appendChild(sq);
  }
  document.getElementById("boardTitle").textContent=`Шахи Капабланки 10×${ROWS}`;
- document.title=`Шахи Капабланки 10×${ROWS} · v5.10.0`;
+ document.title=`Шахи Капабланки 10×${ROWS} · v5.10.1`;
  // Classic refers to the original rules only on 10x8.
  for(const select of [variantEl,mobileVariant]){
   const option=[...select.options].find(o=>o.value==="classic");
@@ -1084,6 +1321,7 @@ function reset(){
  if(fairyBusy)fairySend("stop");
  fairyLastSearchOk=null;
  // IMPORTANT: initialize game state first. UI/orientation/3D are synchronized only after state exists.
+ pendingMoveRecord=null;gameResult="*";fairySearchInfo=null;
  state=initialState(); turn="r"; selected=null; legal=[]; lastMove=null; history=[]; gameOver=false; epSquare=null; pendingPromotion=null;
  resultOverlay.classList.remove("show"); promoOverlay.classList.remove("show");
  updateSideLabels();
@@ -1197,6 +1435,8 @@ function pseudoMoves(s,r,c,includeCastle=true,ep=epSquare){
 function applyMove(s,m,ep,forSearch=false){
  const ns=cloneState(s);
  const p=ns[m.fr][m.fc];
+ ns.halfmoveClock=p.t==="P"||s[m.tr][m.tc]||m.special==="ep"?0:(s.halfmoveClock||0)+1;
+ ns.fullmoveNumber=(s.fullmoveNumber||1)+(p.c==="g"?1:0);
  let newEp=null;
  if(m.special==="ep"){
   const capR=ep?.capR??(p.c==="r"?m.tr+1:m.tr-1);
@@ -1284,7 +1524,7 @@ function render(){
  const who=turn==="r"?"червоних":"зелених";
  const checked=inCheck(state,turn);
  turnStatus.innerHTML=`<b style="color:${turn==="r"?"#ff6b63":"#86c964"}">Хід: ${who}${checked?" — ШАХ":""}</b>`;
- subStatus.textContent=modeEl.value==="ai"?(turn===humanSide()?`Ваш хід (${humanSide()==="r"?"червоні":"зелені"})`:`Хід комп’ютера (${aiSide()==="r"?"червоні":"зелені"})`):"Двоє гравців";
+ subStatus.textContent=gameOver?`Партію завершено · ${gameResult}`:modeEl.value==="ai"?(turn===humanSide()?`Ваш хід (${humanSide()==="r"?"червоні":"зелені"})`:`Хід комп’ютера (${aiSide()==="r"?"червоні":"зелені"})`):"Двоє гравців";
  mobileState.textContent = checked ? "Король під шахом" : "A = слон+кінь · C = тура+кінь";
  if(viewModeEl.value==="3d")renderGL();
 }
@@ -1310,7 +1550,7 @@ function renderMoves(){
  makeRows(mobileMoveList);
  const fullMoves=Math.ceil(history.length/2);
  movesToggle.textContent=`Ходи · ${fullMoves}`;
- movesCount.textContent=`Ходів: ${fullMoves}`;
+ movesCount.textContent=`Ходів: ${fullMoves}${gameResult!=="*"?" · "+gameResult:""}`;
 }
 
 function chooseSquare(r,c){
@@ -1331,12 +1571,18 @@ function commitMove(m){
  const mover=state[m.fr][m.fc];
  const captured = m.special==="ep" ? true : !!state[m.tr][m.tc];
  const noteBase=notation(m,mover,captured);
+ pendingMoveRecord={color:turn,uci:moveToUci(m),beforeFen:stateToFen(),beforeKey:repetitionKey(),
+  engine:aiTurnRequest&&currentAiRequest(aiTurnRequest)?{
+   name:fairyLastSearchOk?"Fairy-Stockfish":"local",level:aiTurnRequest.strength.level,
+   limits:{skill:aiTurnRequest.strength.skill,depth:aiTurnRequest.strength.searchDepth,timeMs:aiTurnRequest.strength.moveTime},
+   analysis:fairyLastSearchOk?aiTurnRequest.analysis||null:null}:null};
  const res=applyMove(state,m,epSquare,false);
  state=res.s; epSquare=res.ep; lastMove=m; selected=null; legal=[];
  const arrived=state[m.tr][m.tc];
  if(arrived.t==="P"&&(m.tr===0||m.tr===ROWS-1)){
   if(modeEl.value==="ai"&&arrived.c===aiSide()){
    arrived.t=m.promote||"Q";
+   pendingMoveRecord.uci=moveToUci(m,arrived.t);
    finishTurn(noteBase+"="+arrived.t);
    return;
   }
@@ -1349,10 +1595,15 @@ function commitMove(m){
 }
 
 function finishTurn(note){
- history.push({color:turn,note});
+ const record={...pendingMoveRecord,color:turn,note};pendingMoveRecord=null;
  turn=enemy(turn);
- render(); renderMoves();
- if(checkGameEnd())return;
+ record.afterFen=stateToFen();record.afterKey=repetitionKey();
+ if(inCheck(state,turn))record.note+="+";
+ history.push(record);
+ const ended=checkGameEnd();
+ if(gameResult!=="*"&&resultTitle.textContent==="МАТ")record.note=record.note.replace(/\+$/,"#");
+ render();renderMoves();
+ if(ended)return;
  if(modeEl.value==="ai"&&turn===aiSide()&&!gameOver){
   const generation=gameGeneration;
   setTimeout(()=>{if(generation===gameGeneration)aiTurn()},120);
@@ -1360,24 +1611,27 @@ function finishTurn(note){
 }
 
 function checkGameEnd(){
- const normal=normalLegalMoves(state,turn,epSquare);
- if(normal.length)return false;
- if(inCheck(state,turn)){
-  const em=emergencyMoves(state,turn);
-  if(em.length)return false;
-  showResult("mate"); return true;
+ if(gameOver)return true;
+ if(!allLegalMoves(state,turn,epSquare).length){
+  showResult(inCheck(state,turn)?"mate":"stalemate");return true;
  }
- showResult("stalemate"); return true;
+ if(repetitionCount()>=3){showResult("repetition");return true}
+ if((state.halfmoveClock||0)>=100){showResult("fiftyMoves");return true}
+ return false;
 }
 
 function showResult(kind){
- gameOver=true; resultOverlay.classList.add("show");
+ gameOver=true;resultOverlay.classList.add("show");
  if(kind==="mate"){
-  resultIcon.textContent="♛"; resultTitle.textContent="МАТ";
-  resultText.textContent=(turn==="g"?"Червоні":"Зелені")+" перемагають.";
+  gameResult=turn==="g"?"1-0":"0-1";
+  resultIcon.textContent="♛";resultTitle.textContent="МАТ";
+  resultText.textContent=(turn==="g"?"Червоні":"Зелені")+" перемагають. "+gameResult;
  }else{
-  resultIcon.textContent="♔"; resultTitle.textContent="ПАТ";
-  resultText.textContent="Нічия — шаху немає, але легальних ходів теж немає.";
+  gameResult="½-½";resultIcon.textContent="♔";
+  resultTitle.textContent=kind==="stalemate"?"ПАТ":"НІЧИЯ";
+  resultText.textContent=({stalemate:"Шаху немає, але легальних ходів теж немає.",
+   repetition:"Позиція з тими самими правами на хід повторилася тричі.",
+   fiftyMoves:"50 ходів кожної сторони без взяття й ходу пішака."})[kind]+" ½-½";
  }
 }
 
@@ -1499,7 +1753,7 @@ function evaluate(s,perspective,ep=null){
  return score;
 }
 
-function moveOrderScore(s,m,color){
+function moveOrderScore(s,m,color,ep){
  const mover=s[m.fr][m.fc];
  const target=s[m.tr][m.tc];
  let score=0;
@@ -1510,7 +1764,7 @@ function moveOrderScore(s,m,color){
  if(m.special==="ep")score+=VAL.P*10;
  if(m.special==="castleL"||m.special==="castleR")score+=550;
  if(mover?.t==="P"&&(m.tr===0||m.tr===ROWS-1))score+=9000;
- const res=applyMove(s,m,null,true);
+ const res=applyMove(s,m,ep,true);
  if(inCheck(res.s,enemy(color)))score+=420;
  // Prefer moves that do not leave a valuable piece immediately hanging.
  if(mover&&mover.t!=="K"&&attacksSquare(res.s,enemy(color),m.tr,m.tc)){
@@ -1521,7 +1775,7 @@ function moveOrderScore(s,m,color){
 
 function orderedMoves(s,color,ep){
  const ms=allLegalMoves(s,color,ep);
- ms.sort((a,b)=>moveOrderScore(s,b,color)-moveOrderScore(s,a,color));
+ ms.sort((a,b)=>moveOrderScore(s,b,color,ep)-moveOrderScore(s,a,color,ep));
  return ms;
 }
 
@@ -1541,40 +1795,34 @@ function tacticalMoves(s,color,ep){
  });
 }
 
-function quiescence(s,color,alpha,beta,rootColor,ep,qDepth=2){
+function quiescence(s,color,alpha,beta,rootColor,ep,qDepth=2,ply=0){
  if(performance.now()>AI_DEADLINE){AI_ABORT=true;return evaluate(s,rootColor,ep)}
- const stand=evaluate(s,rootColor,ep);
- if(qDepth<=0)return stand;
-
- if(color===rootColor){
-  if(stand>=beta)return stand;
-  if(stand>alpha)alpha=stand;
-  let best=stand;
-  const moves=tacticalMoves(s,color,ep);
-  for(const m of moves){
-   const res=applyMove(s,m,ep,true);
-   const v=quiescence(res.s,enemy(color),alpha,beta,rootColor,res.ep,qDepth-1);
-   if(AI_ABORT)return best;
-   if(v>best)best=v;
-   if(best>alpha)alpha=best;
-   if(alpha>=beta)break;
-  }
-  return best;
- }else{
-  if(stand<=alpha)return stand;
-  if(stand<beta)beta=stand;
-  let best=stand;
-  const moves=tacticalMoves(s,color,ep);
-  for(const m of moves){
-   const res=applyMove(s,m,ep,true);
-   const v=quiescence(res.s,enemy(color),alpha,beta,rootColor,res.ep,qDepth-1);
-   if(AI_ABORT)return best;
-   if(v<best)best=v;
-   if(best<beta)beta=best;
-   if(alpha>=beta)break;
-  }
-  return best;
+ const checked=inCheck(s,color),all=orderedMoves(s,color,ep);
+ if(!all.length)return checked?(color===rootColor?-MATE_SCORE+ply:MATE_SCORE-ply):0;
+ if((s.halfmoveClock||0)>=100)return 0;
+ const stand=evaluate(s,rootColor,ep),maximizing=color===rootColor;
+ // An unfinished forced line must not be committed as a completed search.
+ if(ply>=24){AI_ABORT=true;return stand}
+ if(!checked){
+  if(qDepth<=0)return stand;
+  if(maximizing){if(stand>=beta)return stand;alpha=Math.max(alpha,stand)}
+  else{if(stand<=alpha)return stand;beta=Math.min(beta,stand)}
  }
+ const moves=checked?all:all.filter(m=>{
+  if(s[m.tr][m.tc]||m.special==="ep")return true;
+  if(s[m.fr][m.fc].t==="P"&&(m.tr===0||m.tr===ROWS-1))return true;
+  return inCheck(applyMove(s,m,ep,true).s,enemy(color));
+ });
+ let best=checked?(maximizing?-Infinity:Infinity):stand;
+ for(const m of moves){
+  const res=applyMove(s,m,ep,true);
+  const value=quiescence(res.s,enemy(color),alpha,beta,rootColor,res.ep,qDepth-1,ply+1);
+  if(AI_ABORT)return Number.isFinite(best)?best:stand;
+  best=maximizing?Math.max(best,value):Math.min(best,value);
+  if(maximizing)alpha=Math.max(alpha,best);else beta=Math.min(beta,best);
+  if(alpha>=beta)break;
+ }
+ return best;
 }
 
 function minimax(s,color,depth,alpha,beta,rootColor,ep,ply=0){
@@ -1584,7 +1832,8 @@ function minimax(s,color,depth,alpha,beta,rootColor,ep,ply=0){
   if(inCheck(s,color))return color===rootColor?(-MATE_SCORE+ply):(MATE_SCORE-ply);
   return 0;
  }
- if(depth===0)return quiescence(s,color,alpha,beta,rootColor,ep,2);
+ if((s.halfmoveClock||0)>=100)return 0;
+ if(depth===0)return quiescence(s,color,alpha,beta,rootColor,ep,2,ply);
 
  if(color===rootColor){
   let best=-Infinity;
@@ -1658,7 +1907,7 @@ async function aiTurn(){
  if(gameOver||modeEl.value!=="ai"||turn!==aiSide())return;
  if(aiTurnRequest&&currentAiRequest(aiTurnRequest))return;
  if(checkGameEnd())return;
- const request={generation:gameGeneration,rows:ROWS,variant:variant(),side:turn,fen:stateToFen(),strength:strengthProfile()};
+ const request={generation:gameGeneration,rows:ROWS,variant:variant(),side:turn,fen:stateToFen(),position:enginePositionCommand(),strength:strengthProfile()};
  aiTurnRequest=request;
  try{
   if(fairyVariant()){
@@ -2127,6 +2376,7 @@ document.getElementById("newGame").addEventListener("click",reset);
 document.getElementById("resultNew").addEventListener("click",reset);
 document.getElementById("resultClose").addEventListener("click",()=>resultOverlay.classList.remove("show"));
 movesToggle.addEventListener("click",()=>movesOverlay.classList.add("show"));
+document.getElementById("saveGame").addEventListener("click",saveGameReport);
 document.getElementById("movesClose").addEventListener("click",()=>movesOverlay.classList.remove("show"));
 
 
@@ -2171,6 +2421,7 @@ document.querySelectorAll("[data-promo]").forEach(btn=>btn.addEventListener("cli
  const t=btn.dataset.promo;
  state[pendingPromotion.m.tr][pendingPromotion.m.tc].t=t;
  const note=pendingPromotion.noteBase+"="+t;
+ pendingMoveRecord.uci=moveToUci(pendingPromotion.m,t);
  pendingPromotion=null;
  promoOverlay.classList.remove("show");
  finishTurn(note);
