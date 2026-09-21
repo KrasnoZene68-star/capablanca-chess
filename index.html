@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script src="./coi-serviceworker.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Шахи Капабланки 10×8 · v5.10.4 FAIRY · 48 рівнів</title>
+<title>Шахи Капабланки 10×8 · v5.10.5 FAIRY · 48 рівнів</title>
 <style>
 :root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
 *{box-sizing:border-box}
@@ -259,11 +259,16 @@ body:not(.real3d) .board .dark{background:#769656}
 body:not(.real3d) #settingsOpen{background:#30372c;border-color:#687d55;color:#bfdfa7}
 body:not(.real3d) .gameActions #newGame{background:#34332f;border-color:#514f49}
 body:not(.real3d) .gameInfo{background:#2e2d29}
+
+.clockRow{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}
+.clockFace{flex:1;padding:10px;border:2px solid #444;border-radius:12px;background:#252525;font-variant-numeric:tabular-nums;font-size:22px;text-align:center}
+.clockFace.active{border-color:#a5cf75}.clockFace.low{background:#592c24}
+#boardOutcome{text-align:center;font-weight:900;font-size:28px;color:#ffcf75;padding:8px}
 </style>
 </head>
 <body>
 <div class="app">
- <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.10.4 · FAIRY · 48 РІВНІВ</span></div>
+ <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.10.5 · FAIRY · 48 РІВНІВ</span></div>
  <div id="engineIndicator" class="engineIndicator loading"><span class="dot"></span><span id="engineIndicatorText">Fairy-Stockfish: перевірка…</span></div>
  <div class="layout">
   <main>
@@ -272,7 +277,11 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
     <button id="newGame" type="button">Нова партія</button>
    </div>
    <div class="boardShell">
-    <div id="glWrap">
+    <div id="clockRow" class="clockRow" style="display:none">
+<div id="clockRed" class="clockFace"></div><div id="clockGreen" class="clockFace"></div>
+<button id="clockStart" type="button">Почати гру</button></div>
+<div id="boardOutcome" role="status" hidden></div>
+<div id="glWrap">
       <canvas id="glBoard" aria-label="3D шахівниця Капабланки"></canvas>
       <div id="glCoordLayer" aria-hidden="true"></div>
       <div id="glFallback">3D недоступне на цьому пристрої — перемкніть «Вигляд: 2D».</div>
@@ -506,7 +515,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
  <div class="settingsBody">
   <p id="settingsHelp">Зміна розміру дошки, правил, сторони або режиму починає нову партію.</p>
   <p class="strengthHint">Fairy-Stockfish · GPLv3 · <a style="color:inherit" href="./fairy-stockfish-source-v5.10.0.zip" download>Вихідний код рушія</a></p>
-<div class="settingsFields desktopSettings">
+<div class="settingsFields desktopSettings"><div class="settingsField"><label for="timeControl">Час на партію</label><select id="timeControl"><option value="0" selected>Без обмеження</option><option value="1">1 хв кожному</option><option value="2">2 хв кожному</option><option value="3">3 хв кожному</option><option value="4">4 хв кожному</option><option value="5">5 хв кожному</option><option value="6">6 хв кожному</option></select><p class="strengthHint">Без додавання часу. Вибір діятиме після «Нова партія». Годинники запускаються кнопкою «Почати гру» й не зупиняються в налаштуваннях або при згортанні.</p></div>
 <div class="settingsField"><label for="boardSize">Шахівниця</label>
 <select id="boardSize"><option value="8" selected>10×8 · Капабланка</option><option value="10">10×10 · Авторський варіант</option></select>
 <p class="strengthHint">На 10×10 кожна сторона має два ходи пішака на три клітини: з 2-го на 5-й ряд або з 9-го на 6-й. Шлях має бути вільним. Звичайний старт на одну чи дві клітини не витрачає цей запас.</p></div>
@@ -547,7 +556,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
       <p class="strengthHint">Масштаб — двома пальцями або коліщатком миші. Поворот і нахил — перетягуванням дошки. Для ходу коротко торкніться фігури, потім клітини.</p>
       <button id="resetCamera3d" type="button">Початковий ракурс</button>
     </div>
-</div><div class="settingsFields mobileSettings">
+</div><div class="settingsFields mobileSettings"><div class="settingsField"><label for="mobileTimeControl">Час на партію</label><select id="mobileTimeControl"><option value="0" selected>Без обмеження</option><option value="1">1 хв кожному</option><option value="2">2 хв кожному</option><option value="3">3 хв кожному</option><option value="4">4 хв кожному</option><option value="5">5 хв кожному</option><option value="6">6 хв кожному</option></select><p class="strengthHint">Без додавання часу. Вибір діятиме після «Нова партія». Годинники запускаються кнопкою «Почати гру» й не зупиняються в налаштуваннях або при згортанні.</p></div>
 <div class="settingsField"><label for="mobileBoardSize">Шахівниця</label>
 <select id="mobileBoardSize"><option value="8" selected>10×8 · Капабланка</option><option value="10">10×10 · Авторський варіант</option></select>
 <p class="strengthHint">На 10×10 кожна сторона має два ходи пішака на три клітини: з 2-го на 5-й ряд або з 9-го на 6-й. Шлях має бути вільним. Звичайний старт на одну чи дві клітини не витрачає цей запас.</p></div>
@@ -632,6 +641,47 @@ const resultOverlay=document.getElementById("resultOverlay"), promoOverlay=docum
 const resultIcon=document.getElementById("resultIcon"), resultTitle=document.getElementById("resultTitle"), resultText=document.getElementById("resultText");
 
 let state, turn, selected, legal, lastMove, history, gameOver, epSquare, pendingPromotion;
+const timeControl=document.getElementById("timeControl"),mobileTimeControl=document.getElementById("mobileTimeControl");
+let clock={minutes:0,r:0,g:0,running:false,started:false,stamp:0},clockTask=null,endKind=null,pendingTurnBackup=null;
+function clockNow(){return Date.now()}
+function paintClock(){
+ document.getElementById("clockRow").style.display=clock.minutes?"flex":"none";
+ for(const side of ["r","g"]){
+  const e=document.getElementById(side==="r"?"clockRed":"clockGreen"),seconds=Math.ceil(Math.max(0,clock[side])/1000);
+  e.textContent=(side==="r"?"Червоні · ":"Зелені · ")+Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0");
+  e.classList.toggle("active",clock.running&&turn===side);e.classList.toggle("low",clock[side]<=10000);
+ }
+ document.getElementById("clockStart").hidden=!clock.minutes||clock.started||gameOver;
+}
+function settleClock(){
+ if(!clock.running||gameOver)return false;
+ const now=clockNow();clock[turn]=Math.max(0,clock[turn]-Math.max(0,now-clock.stamp));clock.stamp=now;
+ if(clock[turn]>0)return false;
+ if(pendingTurnBackup){state=pendingTurnBackup.state;epSquare=pendingTurnBackup.ep;lastMove=pendingTurnBackup.last;pendingTurnBackup=null}
+ pendingPromotion=null;pendingMoveRecord=null;promoOverlay.classList.remove("show");
+ showResult("timeout");render();renderMoves();return true;
+}
+function clockTick(){
+ clockTask=null;settleClock();paintClock();
+ if(clock.running)clockTask=setTimeout(clockTick,100);
+}
+function resetClock(){
+ if(clockTask!==null)clearTimeout(clockTask);clockTask=null;
+ const minutes=Math.max(0,Math.min(6,Number(timeControl.value)||0));
+ clock={minutes,r:minutes*60000,g:minutes*60000,running:false,started:false,stamp:0};paintClock();
+}
+function startClock(){
+ if(!clock.minutes||clock.started||gameOver)return;
+ clock.started=true;clock.running=true;clock.stamp=clockNow();clockTick();
+ if(modeEl.value==="ai"&&turn===aiSide())void aiTurn();
+}
+function clockAllowsMove(){return (!clock.minutes||clock.started)&&!settleClock()&&!gameOver}
+document.getElementById("clockStart").addEventListener("click",startClock);
+timeControl.addEventListener("change",()=>{mobileTimeControl.value=timeControl.value});
+mobileTimeControl.addEventListener("change",()=>{timeControl.value=mobileTimeControl.value});
+window.addEventListener("pageshow",()=>{settleClock();paintClock()});
+window.addEventListener("focus",()=>{settleClock();paintClock()});
+
 
 
 // --- v5.10.0 Fairy-Stockfish bridge ------------------------------------------
@@ -854,8 +904,9 @@ function repetitionCount(){
  return (history.length&&history[0].beforeKey===key?1:0)+history.filter(h=>h.afterKey===key).length;
 }
 function gameReport(){
- return {format:"capablanca-game-v1",appVersion:"5.10.4",engineBuild:"5.10.0",board:`10x${ROWS}`,
-  variant:variant(),engineVariant:fairyVariant(),result:gameResult,
+ settleClock();
+ return {format:"capablanca-game-v1",appVersion:"5.10.5",engineBuild:"5.10.0",board:`10x${ROWS}`,
+  variant:variant(),engineVariant:fairyVariant(),result:gameResult,endReason:endKind,clock:{...clock},
   strength:strengthProfile(),initialFen:history[0]?.beforeFen||stateToFen(),currentFen:stateToFen(),
   uciPosition:enginePositionCommand(),moves:history.map(h=>({...h})),
   engineStatus:{ready:fairyReady,lastSearchOk:fairyLastSearchOk,reason:fairyFailureReason}};
@@ -910,7 +961,8 @@ function fairyBestMove(request){
    fairySend(request.position||`position fen ${request.fen}`);
    await fairyCommand("isready",x=>x==="readyok",5000);
    if(!currentAiRequest(request))return null;
-   const moveTime=request.strength.moveTime;
+   if(settleClock()||!currentAiRequest(request))return null;
+   const moveTime=clock.running?Math.max(1,Math.min(request.strength.moveTime,Math.floor(clock[turn]/20),Math.floor(clock[turn]-30))):request.strength.moveTime;
    fairySearchInfo=null;
    const depth=request.strength.searchDepth;
    const line=await fairyCommand(`go${depth?` depth ${depth}`:""} movetime ${moveTime}`,x=>x.startsWith("bestmove "),moveTime+8000);
@@ -1709,7 +1761,7 @@ function rebuildBoard(){
   sq.addEventListener("click",onSquare);boardEl.appendChild(sq);
  }
  document.getElementById("boardTitle").textContent=`Шахи Капабланки 10×${ROWS}`;
- document.title=`Шахи Капабланки 10×${ROWS} · v5.10.4`;
+ document.title=`Шахи Капабланки 10×${ROWS} · v5.10.5`;
  // Classic refers to the original rules only on 10x8.
  for(const select of [variantEl,mobileVariant]){
   const option=[...select.options].find(o=>o.value==="classic");
@@ -1725,8 +1777,9 @@ function reset(){
  if(fairyBusy)fairySend("stop");
  fairyLastSearchOk=null;
  // IMPORTANT: initialize game state first. UI/orientation/3D are synchronized only after state exists.
- pendingMoveRecord=null;gameResult="*";fairySearchInfo=null;
+ pendingMoveRecord=null;pendingTurnBackup=null;endKind=null;gameResult="*";fairySearchInfo=null;
  state=initialState(); turn="r"; selected=null; legal=[]; lastMove=null; history=[]; gameOver=false; epSquare=null; pendingPromotion=null;
+ resetClock();
  resultOverlay.classList.remove("show"); promoOverlay.classList.remove("show");
  updateSideLabels();
  applyBoardOrientation();
@@ -1734,7 +1787,7 @@ function reset(){
  render(); renderMoves();
  updateStrengthStatus();
  if(modeEl.value==="ai"&&fairyVariant())void initFairy();
- if(modeEl.value==="ai"&&aiSide()==="r"){
+ if(modeEl.value==="ai"&&aiSide()==="r"&&!clock.minutes){
   const generation=gameGeneration;
   setTimeout(()=>{if(generation===gameGeneration&&!gameOver&&turn===aiSide())aiTurn()},250);
  }
@@ -1929,8 +1982,11 @@ function render(){
  const who=turn==="r"?"червоних":"зелених";
  const checked=inCheck(state,turn);
  turnStatus.innerHTML=`<b style="color:${turn==="r"?"#ff6b63":"#86c964"}">Хід: ${who}${checked?" — ШАХ":""}</b>`;
+ if(gameOver)turnStatus.textContent=resultTitle.textContent+" · "+gameResult;
+ const outcome=document.getElementById("boardOutcome");outcome.hidden=!gameOver;outcome.textContent=gameOver?resultTitle.textContent+" · "+gameResult:"";
+ paintClock();
  subStatus.textContent=gameOver?`Партію завершено · ${gameResult}`:modeEl.value==="ai"?(turn===humanSide()?`Ваш хід (${humanSide()==="r"?"червоні":"зелені"})`:`Хід комп’ютера (${aiSide()==="r"?"червоні":"зелені"})`):"Двоє гравців";
- mobileState.textContent = legal.some(m=>m.special==="ep") ? "Взяття на проході: натисніть підсвічену клітину або ворожого пішака." : checked ? "Король під шахом" : "A = слон+кінь · C = тура+кінь";
+ mobileState.textContent = gameOver ? resultText.textContent : legal.some(m=>m.special==="ep") ? "Взяття на проході: натисніть підсвічену клітину або ворожого пішака." : checked ? "Король під шахом" : "A = слон+кінь · C = тура+кінь";
  if(viewModeEl.value==="3d")renderGL();
 }
 
@@ -1959,7 +2015,7 @@ function renderMoves(){
 }
 
 function chooseSquare(r,c){
- if(gameOver||pendingPromotion)return;
+ if(gameOver||pendingPromotion||!clockAllowsMove())return;
  if(modeEl.value==="ai"&&!isHumanTurn())return;
  if(selected){
   const m=legal.find(x=>x.tr===r&&x.tc===c)||legal.find(x=>x.special==="ep"&&x.tc===c&&epSquare?.capR===r);
@@ -1973,6 +2029,8 @@ function chooseSquare(r,c){
 function onSquare(e){ chooseSquare(+e.currentTarget.dataset.r,+e.currentTarget.dataset.c); }
 
 function commitMove(m){
+ if(!clockAllowsMove())return;
+ pendingTurnBackup={state:cloneState(state),ep:epSquare,last:lastMove};
  const mover=state[m.fr][m.fc];
  const captured = m.special==="ep" ? true : !!state[m.tr][m.tc];
  const noteBase=notation(m,mover,captured);
@@ -2000,8 +2058,12 @@ function commitMove(m){
 }
 
 function finishTurn(note){
+ if(settleClock()||gameOver)return;
+ pendingTurnBackup=null;
  const record={...pendingMoveRecord,color:turn,note};pendingMoveRecord=null;
  turn=enemy(turn);
+ if(clock.running)clock.stamp=clockNow();
+ record.clock={r:Math.round(clock.r),g:Math.round(clock.g)};
  record.afterFen=stateToFen();record.afterKey=repetitionKey();
  if(inCheck(state,turn))record.note+="+";
  history.push(record);
@@ -2026,8 +2088,21 @@ function checkGameEnd(){
 }
 
 function showResult(kind){
+ endKind=kind;clock.running=false;if(clockTask!==null)clearTimeout(clockTask);clockTask=null;
+ if(fairyBusy)fairySend("stop");
+
  gameOver=true;resultOverlay.classList.add("show");
- if(kind==="mate"){
+ if(kind==="timeout"){
+  const winner=enemy(turn),pieces=[];
+  state.forEach((row,r)=>row.forEach((p,c)=>{if(p&&p.t!=="K")pieces.push({...p,squareColor:(r+c)%2})}));
+  const own=pieces.filter(p=>p.c===winner),other=pieces.filter(p=>p.c!==winner);
+  const cannotMate=own.length===0||(!other.length&&own.length===1&&["B","N"].includes(own[0].t))||
+   (pieces.length>0&&pieces.every(p=>p.t==="B"&&p.squareColor===pieces[0].squareColor));
+  const draw=cannotMate&&["classic","escape"].includes(variant());
+  gameResult=draw?"½-½":winner==="r"?"1-0":"0-1";
+  resultIcon.textContent="⌛";resultTitle.textContent=draw?"НІЧИЯ · ЧАС":"ЧАС ВИЧЕРПАНО";
+  resultText.textContent=(turn==="r"?"У червоних":"У зелених")+" закінчився час. "+(draw?"Суперник не має можливості поставити мат. ":(winner==="r"?"Червоні":"Зелені")+" перемагають. ")+gameResult;
+ }else if(kind==="mate"){
   gameResult=turn==="g"?"1-0":"0-1";
   resultIcon.textContent="♛";resultTitle.textContent="МАТ";
   resultText.textContent=(turn==="g"?"Червоні":"Зелені")+" перемагають. "+gameResult;
@@ -2293,7 +2368,7 @@ function localAiTurn(p=strengthProfile()){
  const moves=orderedMoves(state,color,epSquare);
  if(!moves.length){checkGameEnd();return}
 
- AI_DEADLINE=performance.now()+p.time;
+ AI_DEADLINE=performance.now()+(clock.running?Math.max(1,Math.min(p.time,clock[turn]/20,clock[turn]-30)):p.time);
  let chosen=moves[0];
  for(let depth=1;depth<=p.depth;depth++){
   AI_ABORT=false;
@@ -2309,6 +2384,7 @@ function localAiTurn(p=strengthProfile()){
  commitMove(chosen);
 }
 async function aiTurn(){
+ if(!clockAllowsMove())return;
  if(gameOver||modeEl.value!=="ai"||turn!==aiSide())return;
  if(aiTurnRequest&&currentAiRequest(aiTurnRequest))return;
  if(checkGameEnd())return;
@@ -2875,7 +2951,7 @@ modeEl.addEventListener("change",()=>{mobileMode.value=modeEl.value;reset()});
 mobileMode.addEventListener("change",()=>{modeEl.value=mobileMode.value;reset()});
 
 document.querySelectorAll("[data-promo]").forEach(btn=>btn.addEventListener("click",()=>{
- if(!pendingPromotion)return;
+ if(!pendingPromotion||settleClock()||gameOver)return;
  const t=btn.dataset.promo;
  state[pendingPromotion.m.tr][pendingPromotion.m.tc].t=t;
  const note=pendingPromotion.noteBase+"="+t;
