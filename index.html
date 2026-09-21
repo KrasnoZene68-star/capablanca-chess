@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script src="./coi-serviceworker.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Шахи Капабланки 10×8 · v5.10.3 FAIRY · 16 рівнів</title>
+<title>Шахи Капабланки 10×8 · v5.10.4 FAIRY · 48 рівнів</title>
 <style>
 :root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
 *{box-sizing:border-box}
@@ -263,7 +263,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
 </head>
 <body>
 <div class="app">
- <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.10.3 · FAIRY · 16 РІВНІВ</span></div>
+ <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.10.4 · FAIRY · 48 РІВНІВ</span></div>
  <div id="engineIndicator" class="engineIndicator loading"><span class="dot"></span><span id="engineIndicatorText">Fairy-Stockfish: перевірка…</span></div>
  <div class="layout">
   <main>
@@ -519,9 +519,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
     </select>
 </div>
 <div class="settingsField"><label for="strength">Складність</label>
-<select id="strength" class="strengthSelect" aria-label="Складність комп’ютера" aria-describedby="strengthHint">
-      <option value="10" selected>10 · Стратег · 1600</option>
-     </select>
+<select id="strength" class="strengthSelect" aria-label="Складність комп’ютера" aria-describedby="strengthHint"><option value="1">1 · Перше знайомство · I · 267</option><option value="2">2 · Перше знайомство · II · 333</option><option value="3">3 · Перше знайомство · III · 400</option><option value="4">4 · Новачок · I · 467</option><option value="5">5 · Новачок · II · 533</option><option value="6">6 · Новачок · III · 600</option><option value="7">7 · Початківець · I · 667</option><option value="8">8 · Початківець · II · 733</option><option value="9">9 · Початківець · III · 800</option><option value="10">10 · Учень · I · 867</option><option value="11">11 · Учень · II · 933</option><option value="12">12 · Учень · III · 1000</option><option value="13">13 · Аматор · I · 1033</option><option value="14">14 · Аматор · II · 1067</option><option value="15">15 · Аматор · III · 1100</option><option value="16">16 · Практик · I · 1133</option><option value="17">17 · Практик · II · 1167</option><option value="18">18 · Практик · III · 1200</option><option value="19">19 · Досвідчений · I · 1233</option><option value="20">20 · Досвідчений · II · 1267</option><option value="21">21 · Досвідчений · III · 1300</option><option value="22">22 · Клубний гравець · I · 1333</option><option value="23">23 · Клубний гравець · II · 1367</option><option value="24">24 · Клубний гравець · III · 1400</option><option value="25">25 · Тактик · I · 1433</option><option value="26">26 · Тактик · II · 1467</option><option value="27">27 · Тактик · III · 1500</option><option value="28">28 · Стратег · I · 1533</option><option value="29">29 · Стратег · II · 1567</option><option value="30" selected>30 · Стратег · III · 1600</option><option value="31">31 · Сильний аматор · I · 1667</option><option value="32">32 · Сильний аматор · II · 1733</option><option value="33">33 · Сильний аматор · III · 1800</option><option value="34">34 · Експерт · I · 1867</option><option value="35">35 · Експерт · II · 1933</option><option value="36">36 · Експерт · III · 2000</option><option value="37">37 · Кандидат · I · 2067</option><option value="38">38 · Кандидат · II · 2133</option><option value="39">39 · Кандидат · III · 2200</option><option value="40">40 · Майстер · I · 2267</option><option value="41">41 · Майстер · II · 2333</option><option value="42">42 · Майстер · III · 2400</option><option value="43">43 · Гросмейстер · I · 2467</option><option value="44">44 · Гросмейстер · II · 2533</option><option value="45">45 · Гросмейстер · III · 2600</option><option value="46">46 · Максимум · I · 2667</option><option value="47">47 · Максимум · II · 2733</option><option value="48">48 · Максимум · III · 2800</option></select>
 <div id="strengthHint" class="strengthHint">Бали — умовний рейтинг нашої гри, не Elo.</div>
 </div>
 <div class="settingsField"><label for="mode">Режим гри</label>
@@ -562,9 +560,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
     </select>
 </div>
 <div class="settingsField"><label for="mobileStrength">Складність</label>
-<select id="mobileStrength" class="strengthSelect" aria-label="Складність комп’ютера" aria-describedby="mobileStrengthHint">
-      <option value="10" selected>10 · Стратег · 1600</option>
-     </select>
+<select id="mobileStrength" class="strengthSelect" aria-label="Складність комп’ютера" aria-describedby="mobileStrengthHint"><option value="1">1 · Перше знайомство · I · 267</option><option value="2">2 · Перше знайомство · II · 333</option><option value="3">3 · Перше знайомство · III · 400</option><option value="4">4 · Новачок · I · 467</option><option value="5">5 · Новачок · II · 533</option><option value="6">6 · Новачок · III · 600</option><option value="7">7 · Початківець · I · 667</option><option value="8">8 · Початківець · II · 733</option><option value="9">9 · Початківець · III · 800</option><option value="10">10 · Учень · I · 867</option><option value="11">11 · Учень · II · 933</option><option value="12">12 · Учень · III · 1000</option><option value="13">13 · Аматор · I · 1033</option><option value="14">14 · Аматор · II · 1067</option><option value="15">15 · Аматор · III · 1100</option><option value="16">16 · Практик · I · 1133</option><option value="17">17 · Практик · II · 1167</option><option value="18">18 · Практик · III · 1200</option><option value="19">19 · Досвідчений · I · 1233</option><option value="20">20 · Досвідчений · II · 1267</option><option value="21">21 · Досвідчений · III · 1300</option><option value="22">22 · Клубний гравець · I · 1333</option><option value="23">23 · Клубний гравець · II · 1367</option><option value="24">24 · Клубний гравець · III · 1400</option><option value="25">25 · Тактик · I · 1433</option><option value="26">26 · Тактик · II · 1467</option><option value="27">27 · Тактик · III · 1500</option><option value="28">28 · Стратег · I · 1533</option><option value="29">29 · Стратег · II · 1567</option><option value="30" selected>30 · Стратег · III · 1600</option><option value="31">31 · Сильний аматор · I · 1667</option><option value="32">32 · Сильний аматор · II · 1733</option><option value="33">33 · Сильний аматор · III · 1800</option><option value="34">34 · Експерт · I · 1867</option><option value="35">35 · Експерт · II · 1933</option><option value="36">36 · Експерт · III · 2000</option><option value="37">37 · Кандидат · I · 2067</option><option value="38">38 · Кандидат · II · 2133</option><option value="39">39 · Кандидат · III · 2200</option><option value="40">40 · Майстер · I · 2267</option><option value="41">41 · Майстер · II · 2333</option><option value="42">42 · Майстер · III · 2400</option><option value="43">43 · Гросмейстер · I · 2467</option><option value="44">44 · Гросмейстер · II · 2533</option><option value="45">45 · Гросмейстер · III · 2600</option><option value="46">46 · Максимум · I · 2667</option><option value="47">47 · Максимум · II · 2733</option><option value="48">48 · Максимум · III · 2800</option></select>
 <div id="mobileStrengthHint" class="strengthHint">Бали — умовний рейтинг нашої гри, не Elo.</div>
 </div>
 <div class="settingsField"><label for="mobileMode">Режим гри</label>
@@ -858,7 +854,7 @@ function repetitionCount(){
  return (history.length&&history[0].beforeKey===key?1:0)+history.filter(h=>h.afterKey===key).length;
 }
 function gameReport(){
- return {format:"capablanca-game-v1",appVersion:"5.10.3",engineBuild:"5.10.0",board:`10x${ROWS}`,
+ return {format:"capablanca-game-v1",appVersion:"5.10.4",engineBuild:"5.10.0",board:`10x${ROWS}`,
   variant:variant(),engineVariant:fairyVariant(),result:gameResult,
   strength:strengthProfile(),initialFen:history[0]?.beforeFen||stateToFen(),currentFen:stateToFen(),
   uciPosition:enginePositionCommand(),moves:history.map(h=>({...h})),
@@ -994,7 +990,33 @@ const STRENGTH_LEVELS=Object.freeze([
  {
   "level": 1,
   "group": "Перші кроки",
-  "name": "Перше знайомство",
+  "name": "Перше знайомство · I",
+  "points": 267,
+  "skill": 0,
+  "moveTime": 60,
+  "time": 23,
+  "depth": 1,
+  "slip": 0.65,
+  "window": 14,
+  "searchDepth": 1
+ },
+ {
+  "level": 2,
+  "group": "Перші кроки",
+  "name": "Перше знайомство · II",
+  "points": 333,
+  "skill": 0,
+  "moveTime": 90,
+  "time": 32,
+  "depth": 1,
+  "slip": 0.65,
+  "window": 14,
+  "searchDepth": 2
+ },
+ {
+  "level": 3,
+  "group": "Перші кроки",
+  "name": "Перше знайомство · III",
   "points": 400,
   "skill": 0,
   "moveTime": 120,
@@ -1005,9 +1027,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 2
  },
  {
-  "level": 2,
+  "level": 4,
   "group": "Перші кроки",
-  "name": "Новачок",
+  "name": "Новачок · I",
+  "points": 467,
+  "skill": 1,
+  "moveTime": 140,
+  "time": 47,
+  "depth": 1,
+  "slip": 0.617,
+  "window": 13,
+  "searchDepth": 2
+ },
+ {
+  "level": 5,
+  "group": "Перші кроки",
+  "name": "Новачок · II",
+  "points": 533,
+  "skill": 3,
+  "moveTime": 160,
+  "time": 53,
+  "depth": 1,
+  "slip": 0.583,
+  "window": 13,
+  "searchDepth": 3
+ },
+ {
+  "level": 6,
+  "group": "Перші кроки",
+  "name": "Новачок · III",
   "points": 600,
   "skill": 4,
   "moveTime": 180,
@@ -1018,9 +1066,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 3
  },
  {
-  "level": 3,
+  "level": 7,
   "group": "Перші кроки",
-  "name": "Початківець",
+  "name": "Початківець · I",
+  "points": 667,
+  "skill": 5,
+  "moveTime": 207,
+  "time": 67,
+  "depth": 1,
+  "slip": 0.517,
+  "window": 11,
+  "searchDepth": 3
+ },
+ {
+  "level": 8,
+  "group": "Перші кроки",
+  "name": "Початківець · II",
+  "points": 733,
+  "skill": 7,
+  "moveTime": 233,
+  "time": 73,
+  "depth": 1,
+  "slip": 0.483,
+  "window": 11,
+  "searchDepth": 4
+ },
+ {
+  "level": 9,
+  "group": "Перші кроки",
+  "name": "Початківець · III",
   "points": 800,
   "skill": 8,
   "moveTime": 260,
@@ -1031,9 +1105,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 4
  },
  {
-  "level": 4,
+  "level": 10,
   "group": "Перші кроки",
-  "name": "Учень",
+  "name": "Учень · I",
+  "points": 867,
+  "skill": 9,
+  "moveTime": 300,
+  "time": 90,
+  "depth": 1,
+  "slip": 0.417,
+  "window": 9,
+  "searchDepth": 4
+ },
+ {
+  "level": 11,
+  "group": "Перші кроки",
+  "name": "Учень · II",
+  "points": 933,
+  "skill": 11,
+  "moveTime": 340,
+  "time": 100,
+  "depth": 1,
+  "slip": 0.383,
+  "window": 9,
+  "searchDepth": 5
+ },
+ {
+  "level": 12,
+  "group": "Перші кроки",
+  "name": "Учень · III",
   "points": 1000,
   "skill": 12,
   "moveTime": 380,
@@ -1044,9 +1144,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 5
  },
  {
-  "level": 5,
+  "level": 13,
   "group": "Аматорський рівень",
-  "name": "Аматор",
+  "name": "Аматор · I",
+  "points": 1033,
+  "skill": 15,
+  "moveTime": 437,
+  "time": 190,
+  "depth": 1,
+  "slip": 0.233,
+  "window": 6,
+  "searchDepth": 5
+ },
+ {
+  "level": 14,
+  "group": "Аматорський рівень",
+  "name": "Аматор · II",
+  "points": 1067,
+  "skill": 17,
+  "moveTime": 493,
+  "time": 270,
+  "depth": 2,
+  "slip": 0.117,
+  "window": 3,
+  "searchDepth": 5
+ },
+ {
+  "level": 15,
+  "group": "Аматорський рівень",
+  "name": "Аматор · III",
   "points": 1100,
   "skill": 20,
   "moveTime": 550,
@@ -1057,9 +1183,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 5
  },
  {
-  "level": 6,
+  "level": 16,
   "group": "Аматорський рівень",
-  "name": "Практик",
+  "name": "Практик · I",
+  "points": 1133,
+  "skill": 20,
+  "moveTime": 617,
+  "time": 350,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 5
+ },
+ {
+  "level": 17,
+  "group": "Аматорський рівень",
+  "name": "Практик · II",
+  "points": 1167,
+  "skill": 20,
+  "moveTime": 683,
+  "time": 350,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 6
+ },
+ {
+  "level": 18,
+  "group": "Аматорський рівень",
+  "name": "Практик · III",
   "points": 1200,
   "skill": 20,
   "moveTime": 750,
@@ -1070,9 +1222,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 6
  },
  {
-  "level": 7,
+  "level": 19,
   "group": "Аматорський рівень",
-  "name": "Досвідчений",
+  "name": "Досвідчений · I",
+  "points": 1233,
+  "skill": 20,
+  "moveTime": 833,
+  "time": 350,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 6
+ },
+ {
+  "level": 20,
+  "group": "Аматорський рівень",
+  "name": "Досвідчений · II",
+  "points": 1267,
+  "skill": 20,
+  "moveTime": 917,
+  "time": 350,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 7
+ },
+ {
+  "level": 21,
+  "group": "Аматорський рівень",
+  "name": "Досвідчений · III",
   "points": 1300,
   "skill": 20,
   "moveTime": 1000,
@@ -1083,9 +1261,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 7
  },
  {
-  "level": 8,
+  "level": 22,
   "group": "Аматорський рівень",
-  "name": "Клубний гравець",
+  "name": "Клубний гравець · I",
+  "points": 1333,
+  "skill": 20,
+  "moveTime": 1100,
+  "time": 350,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 7
+ },
+ {
+  "level": 23,
+  "group": "Аматорський рівень",
+  "name": "Клубний гравець · II",
+  "points": 1367,
+  "skill": 20,
+  "moveTime": 1200,
+  "time": 350,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 8
+ },
+ {
+  "level": 24,
+  "group": "Аматорський рівень",
+  "name": "Клубний гравець · III",
   "points": 1400,
   "skill": 20,
   "moveTime": 1300,
@@ -1096,9 +1300,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 8
  },
  {
-  "level": 9,
+  "level": 25,
   "group": "Сильна гра",
-  "name": "Тактик",
+  "name": "Тактик · I",
+  "points": 1433,
+  "skill": 20,
+  "moveTime": 1433,
+  "time": 467,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 8
+ },
+ {
+  "level": 26,
+  "group": "Сильна гра",
+  "name": "Тактик · II",
+  "points": 1467,
+  "skill": 20,
+  "moveTime": 1567,
+  "time": 583,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 9
+ },
+ {
+  "level": 27,
+  "group": "Сильна гра",
+  "name": "Тактик · III",
   "points": 1500,
   "skill": 20,
   "moveTime": 1700,
@@ -1109,9 +1339,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 9
  },
  {
-  "level": 10,
+  "level": 28,
   "group": "Сильна гра",
-  "name": "Стратег",
+  "name": "Стратег · I",
+  "points": 1533,
+  "skill": 20,
+  "moveTime": 1867,
+  "time": 700,
+  "depth": 2,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 9
+ },
+ {
+  "level": 29,
+  "group": "Сильна гра",
+  "name": "Стратег · II",
+  "points": 1567,
+  "skill": 20,
+  "moveTime": 2033,
+  "time": 700,
+  "depth": 3,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 10
+ },
+ {
+  "level": 30,
+  "group": "Сильна гра",
+  "name": "Стратег · III",
   "points": 1600,
   "skill": 20,
   "moveTime": 2200,
@@ -1122,9 +1378,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 10
  },
  {
-  "level": 11,
+  "level": 31,
   "group": "Сильна гра",
-  "name": "Сильний аматор",
+  "name": "Сильний аматор · I",
+  "points": 1667,
+  "skill": 20,
+  "moveTime": 2400,
+  "time": 750,
+  "depth": 3,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 10
+ },
+ {
+  "level": 32,
+  "group": "Сильна гра",
+  "name": "Сильний аматор · II",
+  "points": 1733,
+  "skill": 20,
+  "moveTime": 2600,
+  "time": 800,
+  "depth": 3,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 11
+ },
+ {
+  "level": 33,
+  "group": "Сильна гра",
+  "name": "Сильний аматор · III",
   "points": 1800,
   "skill": 20,
   "moveTime": 2800,
@@ -1135,9 +1417,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 11
  },
  {
-  "level": 12,
+  "level": 34,
   "group": "Сильна гра",
-  "name": "Експерт",
+  "name": "Експерт · I",
+  "points": 1867,
+  "skill": 20,
+  "moveTime": 3033,
+  "time": 933,
+  "depth": 3,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 11
+ },
+ {
+  "level": 35,
+  "group": "Сильна гра",
+  "name": "Експерт · II",
+  "points": 1933,
+  "skill": 20,
+  "moveTime": 3267,
+  "time": 1017,
+  "depth": 3,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 12
+ },
+ {
+  "level": 36,
+  "group": "Сильна гра",
+  "name": "Експерт · III",
   "points": 2000,
   "skill": 20,
   "moveTime": 3500,
@@ -1148,9 +1456,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 12
  },
  {
-  "level": 13,
+  "level": 37,
   "group": "Майстерність",
-  "name": "Кандидат",
+  "name": "Кандидат · I",
+  "points": 2067,
+  "skill": 20,
+  "moveTime": 3767,
+  "time": 1267,
+  "depth": 3,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 13
+ },
+ {
+  "level": 38,
+  "group": "Майстерність",
+  "name": "Кандидат · II",
+  "points": 2133,
+  "skill": 20,
+  "moveTime": 4033,
+  "time": 1433,
+  "depth": 4,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 13
+ },
+ {
+  "level": 39,
+  "group": "Майстерність",
+  "name": "Кандидат · III",
   "points": 2200,
   "skill": 20,
   "moveTime": 4300,
@@ -1161,9 +1495,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 14
  },
  {
-  "level": 14,
+  "level": 40,
   "group": "Майстерність",
-  "name": "Майстер",
+  "name": "Майстер · I",
+  "points": 2267,
+  "skill": 20,
+  "moveTime": 4600,
+  "time": 1767,
+  "depth": 4,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 15
+ },
+ {
+  "level": 41,
+  "group": "Майстерність",
+  "name": "Майстер · II",
+  "points": 2333,
+  "skill": 20,
+  "moveTime": 4900,
+  "time": 1933,
+  "depth": 4,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 15
+ },
+ {
+  "level": 42,
+  "group": "Майстерність",
+  "name": "Майстер · III",
   "points": 2400,
   "skill": 20,
   "moveTime": 5200,
@@ -1174,9 +1534,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 16
  },
  {
-  "level": 15,
+  "level": 43,
   "group": "Майстерність",
-  "name": "Гросмейстер",
+  "name": "Гросмейстер · I",
+  "points": 2467,
+  "skill": 20,
+  "moveTime": 5567,
+  "time": 2400,
+  "depth": 4,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 17
+ },
+ {
+  "level": 44,
+  "group": "Майстерність",
+  "name": "Гросмейстер · II",
+  "points": 2533,
+  "skill": 20,
+  "moveTime": 5933,
+  "time": 2700,
+  "depth": 4,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 17
+ },
+ {
+  "level": 45,
+  "group": "Майстерність",
+  "name": "Гросмейстер · III",
   "points": 2600,
   "skill": 20,
   "moveTime": 6300,
@@ -1187,9 +1573,35 @@ const STRENGTH_LEVELS=Object.freeze([
   "searchDepth": 18
  },
  {
-  "level": 16,
+  "level": 46,
   "group": "Майстерність",
-  "name": "Максимум",
+  "name": "Максимум · I",
+  "points": 2667,
+  "skill": 20,
+  "moveTime": 6700,
+  "time": 3400,
+  "depth": 4,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 20
+ },
+ {
+  "level": 47,
+  "group": "Майстерність",
+  "name": "Максимум · II",
+  "points": 2733,
+  "skill": 20,
+  "moveTime": 7100,
+  "time": 3800,
+  "depth": 4,
+  "slip": 0,
+  "window": 1,
+  "searchDepth": 21
+ },
+ {
+  "level": 48,
+  "group": "Майстерність",
+  "name": "Максимум · III",
   "points": 2800,
   "skill": 20,
   "moveTime": 7500,
@@ -1202,7 +1614,7 @@ const STRENGTH_LEVELS=Object.freeze([
 ].map(p=>Object.freeze(p)));
 function strengthLevel(){
  const n=Number(strengthEl.value);
- return Number.isInteger(n)?Math.max(1,Math.min(STRENGTH_LEVELS.length,n)):10;
+ return Number.isInteger(n)?Math.max(1,Math.min(STRENGTH_LEVELS.length,n)):30;
 }
 function strengthProfile(){return STRENGTH_LEVELS[strengthLevel()-1]}
 function populateStrengthSelects(){
@@ -1237,10 +1649,10 @@ function updateStrengthStatus(){
  const ruleLabel=variant()==="both"?" · король + кінь + аварійний вихід":variant()==="kingKnight"?" · король + кінь":variant()==="escape"?" · аварійний вихід":"";
  const levelLabel=`${p.level}/${STRENGTH_LEVELS.length} ${p.name} · ${p.points} балів`;
  const pending=aiTurnRequest&&currentAiRequest(aiTurnRequest)&&aiTurnRequest.strength.level!==p.level;
- const strengthNote=p.level<=4
-  ?" Навчальний рівень із навмисними помилками. Від рівня 5 — без випадкового послаблення."
-  :p.level===16?" Максимальна сила в межах часу на хід."
-  :" Сила залежить від глибини й часу розрахунку. Рівень 16 — максимальна сила.";
+ const strengthNote=p.level<=14
+  ?" Навчальний рівень із навмисними помилками. Від рівня 15 — без випадкового послаблення."
+  :p.level===48?" Максимальна сила в межах часу на хід."
+  :" Сила залежить від глибини й часу розрахунку. Рівень 48 — максимальна сила.";
  const hint="Бали — умовний рейтинг нашої гри, не Elo."+strengthNote+(pending?" Новий рівень діятиме з наступного ходу комп’ютера.":"");
  for(const id of ["strengthHint","mobileStrengthHint"]){
   const el=document.getElementById(id); if(el)el.textContent=hint;
@@ -1297,7 +1709,7 @@ function rebuildBoard(){
   sq.addEventListener("click",onSquare);boardEl.appendChild(sq);
  }
  document.getElementById("boardTitle").textContent=`Шахи Капабланки 10×${ROWS}`;
- document.title=`Шахи Капабланки 10×${ROWS} · v5.10.3`;
+ document.title=`Шахи Капабланки 10×${ROWS} · v5.10.4`;
  // Classic refers to the original rules only on 10x8.
  for(const select of [variantEl,mobileVariant]){
   const option=[...select.options].find(o=>o.value==="classic");
@@ -1396,7 +1808,7 @@ function pseudoMoves(s,r,c,includeCastle=true,ep=epSquare){
   for(const dc of [-1,1]){
    const rr=r+d,cc=c+dc;
    if(inside(rr,cc)&&s[rr][cc]&&s[rr][cc].c!==color)out.push({r:rr,c:cc});
-   if(ep&&(ep.targets||[ep]).some(t=>t.r===rr&&t.c===cc)&&!s[rr][cc])out.push({r:rr,c:cc,special:"ep"});
+   if(ep&&inside(rr,cc)&&(ep.targets||[ep]).some(t=>t.r===rr&&t.c===cc)&&!s[rr][cc]&&s[ep.capR]?.[cc]?.t==="P"&&s[ep.capR][cc].c!==color)out.push({r:rr,c:cc,special:"ep"});
   }
  }
  if(["R","Q","C"].includes(p.t))slide(ORTH);
@@ -1503,7 +1915,8 @@ function render(){
   sq.classList.remove("selected","legal","capture","last","check");
   if(selected&&selected.r===r&&selected.c===c)sq.classList.add("selected");
   const lm=legal.find(m=>m.tr===r&&m.tc===c);
-  if(lm)sq.classList.add(state[r][c]?"capture":"legal");
+  if(lm)sq.classList.add(state[r][c]||lm.special==="ep"?"capture":"legal");
+  if(legal.some(m=>m.special==="ep"&&m.tc===c&&epSquare?.capR===r))sq.classList.add("capture");
   if(lastMove&&((lastMove.fr===r&&lastMove.fc===c)||(lastMove.tr===r&&lastMove.tc===c)))sq.classList.add("last");
   if(checkKing&&checkKing[0]===r&&checkKing[1]===c)sq.classList.add("check");
   const old=sq.querySelector(".piece"); if(old)old.remove();
@@ -1517,7 +1930,7 @@ function render(){
  const checked=inCheck(state,turn);
  turnStatus.innerHTML=`<b style="color:${turn==="r"?"#ff6b63":"#86c964"}">Хід: ${who}${checked?" — ШАХ":""}</b>`;
  subStatus.textContent=gameOver?`Партію завершено · ${gameResult}`:modeEl.value==="ai"?(turn===humanSide()?`Ваш хід (${humanSide()==="r"?"червоні":"зелені"})`:`Хід комп’ютера (${aiSide()==="r"?"червоні":"зелені"})`):"Двоє гравців";
- mobileState.textContent = checked ? "Король під шахом" : "A = слон+кінь · C = тура+кінь";
+ mobileState.textContent = legal.some(m=>m.special==="ep") ? "Взяття на проході: натисніть підсвічену клітину або ворожого пішака." : checked ? "Король під шахом" : "A = слон+кінь · C = тура+кінь";
  if(viewModeEl.value==="3d")renderGL();
 }
 
@@ -1549,7 +1962,7 @@ function chooseSquare(r,c){
  if(gameOver||pendingPromotion)return;
  if(modeEl.value==="ai"&&!isHumanTurn())return;
  if(selected){
-  const m=legal.find(x=>x.tr===r&&x.tc===c);
+  const m=legal.find(x=>x.tr===r&&x.tc===c)||legal.find(x=>x.special==="ep"&&x.tc===c&&epSquare?.capR===r);
   if(m){commitMove(m);return}
  }
  const p=state[r][c];
@@ -2220,7 +2633,8 @@ function renderGL(){
   let col=(r+c)%2?[.46,.30,.19]:[.78,.66,.47];
   if(lastMove&&((lastMove.fr===r&&lastMove.fc===c)||(lastMove.tr===r&&lastMove.tc===c)))col=[.56,.58,.25];
   if(selected&&selected.r===r&&selected.c===c)col=[.67,.60,.18];
-  const lm=legal&&legal.find(m=>m.tr===r&&m.tc===c);if(lm)col=state[r][c]?[.66,.22,.20]:[.38,.54,.22];
+  const lm=legal&&legal.find(m=>m.tr===r&&m.tc===c);if(lm)col=state[r][c]||lm.special==="ep"?[.66,.22,.20]:[.38,.54,.22];
+  if(legal?.some(m=>m.special==="ep"&&m.tc===c&&epSquare?.capR===r))col=[.66,.22,.20];
   drawMesh(glMeshes.sq,m4Translate(c-4.5,0,r-(ROWS-1)/2),new Float32Array(col));
  }
  // Soft contact shadows anchor every piece without extra scene textures.
