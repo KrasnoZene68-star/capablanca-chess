@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script src="./coi-serviceworker.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Шахи Капабланки 10×8 · v5.10.1 FAIRY · 16 рівнів</title>
+<title>Шахи Капабланки 10×8 · v5.10.2 FAIRY · 16 рівнів</title>
 <style>
 :root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
 *{box-sizing:border-box}
@@ -131,7 +131,7 @@ body.real3d .boardShell{
  padding:8px;background:linear-gradient(145deg,#171310,#0c0b0a);
  box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 16px 38px rgba(0,0,0,.42)
 }
-#glBoard{display:block;width:100%;height:100%;touch-action:none;cursor:pointer;-webkit-user-select:none;user-select:none}
+#glBoard{display:block;width:100%;height:100%;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
 #glBottomCoords{
  position:absolute;left:7.5%;right:7.5%;bottom:1.1%;display:grid;grid-template-columns:repeat(10,1fr);
  pointer-events:none;color:#f3e1bd;font-weight:800;font-size:clamp(10px,1.3vw,17px);
@@ -263,7 +263,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
 </head>
 <body>
 <div class="app">
- <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.10.1 · FAIRY · 16 РІВНІВ</span></div>
+ <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.10.2 · FAIRY · 16 РІВНІВ</span></div>
  <div id="engineIndicator" class="engineIndicator loading"><span class="dot"></span><span id="engineIndicatorText">Fairy-Stockfish: перевірка…</span></div>
  <div class="layout">
   <main>
@@ -546,12 +546,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
     </select>
 </div>
 <div id="cameraControls" class="cameraControls">
-      <label>Масштаб 3D
-        <input id="zoom3d" type="range" min="70" max="145" value="100" step="1">
-      </label>
-      <label>Ракурс камери
-        <input id="angle3d" type="range" min="18" max="58" value="36" step="1">
-      </label>
+      <p class="strengthHint">Масштаб — двома пальцями або коліщатком миші. Поворот і нахил — перетягуванням дошки. Для ходу коротко торкніться фігури, потім клітини.</p>
       <button id="resetCamera3d" type="button">Початковий ракурс</button>
     </div>
 </div><div class="settingsFields mobileSettings">
@@ -591,12 +586,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
     </select>
 </div>
 <div id="mobileCameraControls" class="cameraControls mobileCameraControls">
-      <label>Масштаб 3D
-        <input id="mobileZoom3d" type="range" min="70" max="145" value="100" step="1">
-      </label>
-      <label>Ракурс
-        <input id="mobileAngle3d" type="range" min="18" max="58" value="36" step="1">
-      </label>
+      <p class="strengthHint">Масштаб — двома пальцями або коліщатком миші. Поворот і нахил — перетягуванням дошки. Для ходу коротко торкніться фігури, потім клітини.</p>
       <button id="mobileResetCamera3d" type="button">Початковий ракурс</button>
     </div>
 </div>
@@ -632,8 +622,8 @@ const viewModeEl=document.getElementById("viewMode"), mobileViewMode=document.ge
 const pieceSetEl=document.getElementById("pieceSet"), mobilePieceSet=document.getElementById("mobilePieceSet");
 const glWrap=document.getElementById("glWrap"), glCanvas=document.getElementById("glBoard");
 const glCoordLayer=document.getElementById("glCoordLayer");
-const zoom3dEl=document.getElementById("zoom3d"), angle3dEl=document.getElementById("angle3d"), resetCamera3dEl=document.getElementById("resetCamera3d");
-const mobileZoom3d=document.getElementById("mobileZoom3d"), mobileAngle3d=document.getElementById("mobileAngle3d"), mobileResetCamera3d=document.getElementById("mobileResetCamera3d");
+const resetCamera3dEl=document.getElementById("resetCamera3d");
+const mobileResetCamera3d=document.getElementById("mobileResetCamera3d");
 
 const modeEl=document.getElementById("mode"), mobileMode=document.getElementById("mobileMode");
 const turnStatus=document.getElementById("turnStatus"), subStatus=document.getElementById("subStatus");
@@ -868,7 +858,7 @@ function repetitionCount(){
  return (history.length&&history[0].beforeKey===key?1:0)+history.filter(h=>h.afterKey===key).length;
 }
 function gameReport(){
- return {format:"capablanca-game-v1",appVersion:"5.10.1",engineBuild:"5.10.0",board:`10x${ROWS}`,
+ return {format:"capablanca-game-v1",appVersion:"5.10.2",engineBuild:"5.10.0",board:`10x${ROWS}`,
   variant:variant(),engineVariant:fairyVariant(),result:gameResult,
   strength:strengthProfile(),initialFen:history[0]?.beforeFen||stateToFen(),currentFen:stateToFen(),
   uciPosition:enginePositionCommand(),moves:history.map(h=>({...h})),
@@ -958,6 +948,7 @@ function pieceSet(){return pieceSetEl.value}
 function isHumanTurn(){return modeEl.value!=="ai"||turn===humanSide()}
 
 function applyViewMode(){
+ cancelCameraGesture();
  const is3d=viewModeEl.value==="3d";
  document.body.classList.toggle("view3d",false);
  document.body.classList.toggle("real3d",is3d);
@@ -1306,7 +1297,7 @@ function rebuildBoard(){
   sq.addEventListener("click",onSquare);boardEl.appendChild(sq);
  }
  document.getElementById("boardTitle").textContent=`Шахи Капабланки 10×${ROWS}`;
- document.title=`Шахи Капабланки 10×${ROWS} · v5.10.1`;
+ document.title=`Шахи Капабланки 10×${ROWS} · v5.10.2`;
  // Classic refers to the original rules only on 10x8.
  for(const select of [variantEl,mobileVariant]){
   const option=[...select.options].find(o=>o.value==="classic");
@@ -1314,6 +1305,7 @@ function rebuildBoard(){
  }
 }
 function reset(){
+ cancelCameraGesture();
  ROWS=boardSizeEl.value==="10"?10:8;
  boardSizeEl.value=mobileBoardSize.value=String(ROWS);
  rebuildBoard();
@@ -2123,8 +2115,7 @@ void main(){
    glMeshes[set+t]=uploaded[key]||(uploaded[key]=compileMesh(makePieceGeom(t,set)));
   }
   const shadow=meshBuilder();addBox(shadow,1.1,.001,1.1,0,0,0);glMeshes.shadow=compileMesh(shadow);
-  glCanvas.addEventListener("pointerdown",glPointer,{passive:false});
-  glCanvas.addEventListener("click",glPointer,{passive:false});
+  installCameraGestures();
   window.addEventListener("resize",resizeGL);
   GLReady=true;glWrap.classList.remove("failed");return true;
  }catch(e){console.error(e);GLFailed=true;glWrap.classList.add("failed");return false}
@@ -2148,15 +2139,10 @@ function drawMesh(mesh,model,color,material=0){
 let zoom3d=1.0;
 let angle3dDeg=36;
 
-function syncCameraControls(){
- const z=Math.round(zoom3d*100), a=Math.round(angle3dDeg);
- zoom3dEl.value=z; mobileZoom3d.value=z;
- angle3dEl.value=a; mobileAngle3d.value=a;
-}
+let orbit3dDeg=0;
 function resetCamera3D(){
- zoom3d=1.0;
- angle3dDeg=36;
- syncCameraControls();
+ cancelCameraGesture();
+ zoom3d=1;angle3dDeg=36;orbit3dDeg=0;
  renderGL();
 }
 
@@ -2168,11 +2154,13 @@ function setupCameraGL(){
  // Both colors use the same camera dimensions, mirrored about the board.
  let distance=0;
  for(const x of [-5.4,5.4])for(const y of [-.4,1.85])for(const z of [-ROWS/2-.45,ROWS/2+.45]){
-  const vertical=(y-.50)*ca-z*sa,depth=(y-.50)*sa+z*ca;
-  distance=Math.max(distance,depth+1.06*Math.max(Math.abs(x)/(tan*aspect),Math.abs(vertical)/tan));
+  const az=orbit3dDeg*Math.PI/180,along=x*Math.sin(az)+z*Math.cos(az),across=x*Math.cos(az)-z*Math.sin(az);
+  const vertical=(y-.50)*ca-along*sa,depth=(y-.50)*sa+along*ca;
+  distance=Math.max(distance,depth+1.06*Math.max(Math.abs(across)/(tan*aspect),Math.abs(vertical)/tan));
  }
  distance/=zoom3d;
- const eye=[0,.50+distance*sa,sign*distance*ca];
+ const orbit=orbit3dDeg*Math.PI/180;
+ const eye=[sign*distance*ca*Math.sin(orbit),.50+distance*sa,sign*distance*ca*Math.cos(orbit)];
  projM=m4Perspective(32*Math.PI/180,aspect,.1,80);
  viewM=m4LookAt(eye,[0,.50,0],[0,1,0]);vpM=m4Mul(projM,viewM);invVPM=m4Inv(vpM);
  GL.uniform3fv(uEye,eye);GL.uniform3fv(uLight,[-4,9,7]);updateProjectedCoordsGL();
@@ -2193,7 +2181,8 @@ function updateProjectedCoordsGL(){
  const rankLabels=Array.from({length:ROWS},(_,i)=>String(flip?i+1:ROWS-i));
 
  // Horizontal coordinates are anchored just outside the near 3D board edge.
- const nearZ=(flip?-1:1)*(ROWS/2+.18);
+ const az=orbit3dDeg*Math.PI/180;
+ const nearZ=(flip?-1:1)*(Math.cos(az)>=0?1:-1)*(ROWS/2+.18);
  for(let i=0;i<10;i++){
   const worldC=flip?9-i:i;
   const p=projectGLPoint(worldC-4.5,.10,nearZ);
@@ -2207,7 +2196,7 @@ function updateProjectedCoordsGL(){
  }
 
  // Vertical coordinates are anchored to the visible left sloping edge.
- const sideX=flip?5.15:-5.15;
+ const sideX=(flip?1:-1)*(Math.cos(az)>=0?1:-1)*5.15;
  for(let i=0;i<ROWS;i++){
   const worldR=flip?ROWS-1-i:i;
   const p=projectGLPoint(sideX,.10,worldR-(ROWS-1)/2);
@@ -2333,14 +2322,81 @@ function screenToSquareGL(clientX,clientY){
  }
  return null;
 }
-let lastGLTap=0;
+// A move is committed only after a stationary single-pointer release.
+// A multi-touch sequence stays a camera gesture until ALL fingers are lifted.
+const cameraPointers=new Map();
+let cameraDragged=false,cameraFrame=null;
+function cancelCameraGesture(){
+ const ids=[...cameraPointers.keys()];cameraPointers.clear();cameraDragged=true;
+ for(const id of ids)try{glCanvas.releasePointerCapture(id)}catch(_){}
+ glCanvas.style.cursor="grab";
+}
+function requestCameraRender(){
+ if(cameraFrame!==null)return;
+ cameraFrame=requestAnimationFrame(()=>{cameraFrame=null;renderGL()});
+}
+function cameraZoom(value){zoom3d=Math.max(.65,Math.min(2.2,value));requestCameraRender()}
 function glPointer(ev){
- if(ev.type==="click" && performance.now()-lastGLTap<350)return;
- if(ev.type==="pointerdown")lastGLTap=performance.now();
- if(ev.cancelable)ev.preventDefault();
  if(!state||gameOver||pendingPromotion||viewModeEl.value!=="3d")return;
  const sq=screenToPieceGL(ev.clientX,ev.clientY)||screenToSquareGL(ev.clientX,ev.clientY);
  if(sq)chooseSquare(sq.r,sq.c);
+}
+function cameraDown(ev){
+ if(viewModeEl.value!=="3d"||ev.button!==0)return;
+ if(ev.cancelable)ev.preventDefault();
+ if(!cameraPointers.size)cameraDragged=false;
+ cameraPointers.set(ev.pointerId,{x:ev.clientX,y:ev.clientY,startX:ev.clientX,startY:ev.clientY});
+ if(cameraPointers.size>1)cameraDragged=true;
+ try{glCanvas.setPointerCapture(ev.pointerId)}catch(_){}
+ glCanvas.style.cursor="grabbing";
+}
+function cameraMove(ev){
+ const p=cameraPointers.get(ev.pointerId);if(!p)return;
+ if(ev.cancelable)ev.preventDefault();
+ if(viewModeEl.value!=="3d"){cancelCameraGesture();return}
+ if(cameraPointers.size===2){
+  const other=[...cameraPointers.entries()].find(([id])=>id!==ev.pointerId)[1];
+  const before=Math.hypot(p.x-other.x,p.y-other.y);
+  const after=Math.hypot(ev.clientX-other.x,ev.clientY-other.y);
+  if(before>5&&after>5)cameraZoom(zoom3d*after/before);
+ }else if(cameraPointers.size===1){
+  const dx=ev.clientX-p.x,dy=ev.clientY-p.y;
+  if(Math.hypot(ev.clientX-p.startX,ev.clientY-p.startY)>7)cameraDragged=true;
+  if(cameraDragged){
+   orbit3dDeg=(orbit3dDeg-dx*.4)%360;
+   angle3dDeg=Math.max(18,Math.min(75,angle3dDeg+dy*.25));
+   requestCameraRender();
+  }
+ }
+ p.x=ev.clientX;p.y=ev.clientY;
+}
+function cameraUp(ev){
+ const p=cameraPointers.get(ev.pointerId);if(!p)return;
+ if(ev.cancelable)ev.preventDefault();
+ const tap=!cameraDragged&&cameraPointers.size===1&&Math.hypot(ev.clientX-p.startX,ev.clientY-p.startY)<=7;
+ cameraPointers.delete(ev.pointerId);
+ try{glCanvas.releasePointerCapture(ev.pointerId)}catch(_){}
+ if(!cameraPointers.size)glCanvas.style.cursor="grab";
+ // The camera matrix must match the image used to pick a square.
+ if(tap){renderGL();glPointer(ev)}
+}
+function cameraWheel(ev){
+ if(viewModeEl.value!=="3d")return;
+ if(ev.cancelable)ev.preventDefault();
+ if(cameraPointers.size)cameraDragged=true;
+ const unit=ev.deltaMode===1?16:ev.deltaMode===2?glCanvas.getBoundingClientRect().height:1;
+ cameraZoom(zoom3d*Math.exp(-Math.max(-200,Math.min(200,ev.deltaY*unit))*.002));
+}
+function installCameraGestures(){
+ glCanvas.addEventListener("pointerdown",cameraDown,{passive:false});
+ glCanvas.addEventListener("pointermove",cameraMove,{passive:false});
+ glCanvas.addEventListener("pointerup",cameraUp,{passive:false});
+ glCanvas.addEventListener("pointercancel",cancelCameraGesture);
+ glCanvas.addEventListener("lostpointercapture",ev=>{if(cameraPointers.has(ev.pointerId))cancelCameraGesture()});
+ glCanvas.addEventListener("wheel",cameraWheel,{passive:false});
+ // Pointer-up handles taps; synthetic clicks after a drag or pinch do nothing.
+ glCanvas.addEventListener("click",ev=>{if(ev.cancelable)ev.preventDefault()});
+ window.addEventListener("blur",cancelCameraGesture);
 }
 
 const settingsDialog=document.getElementById("settingsDialog");
@@ -2393,18 +2449,6 @@ mobileViewMode.addEventListener("change",()=>{viewModeEl.value=mobileViewMode.va
 pieceSetEl.addEventListener("change",()=>{mobilePieceSet.value=pieceSetEl.value;renderGL()});
 mobilePieceSet.addEventListener("change",()=>{pieceSetEl.value=mobilePieceSet.value;renderGL()});
 
-function applyZoomValue(v){
- zoom3d=Math.max(.70,Math.min(1.45,Number(v)/100||1));
- syncCameraControls(); renderGL();
-}
-function applyAngleValue(v){
- angle3dDeg=Math.max(18,Math.min(58,Number(v)||36));
- syncCameraControls(); renderGL();
-}
-zoom3dEl.addEventListener("input",()=>applyZoomValue(zoom3dEl.value));
-mobileZoom3d.addEventListener("input",()=>applyZoomValue(mobileZoom3d.value));
-angle3dEl.addEventListener("input",()=>applyAngleValue(angle3dEl.value));
-mobileAngle3d.addEventListener("input",()=>applyAngleValue(mobileAngle3d.value));
 resetCamera3dEl.addEventListener("click",resetCamera3D);
 mobileResetCamera3d.addEventListener("click",resetCamera3D);
 
@@ -2436,7 +2480,7 @@ mobileMode.value=modeEl.value;
 mobileViewMode.value=viewModeEl.value;
 mobilePieceSet.value=pieceSetEl.value;
 updateStrengthStatus();
-syncCameraControls();
+
 reset();
 })();
 </script>
