@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <script src="./coi-serviceworker.js"></script>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Шахи Капабланки 10×8 · v5.10.5 FAIRY · 48 рівнів</title>
+<title>Шахи Капабланки 10×8 · v5.11.0 · 2 рушії · 48 рівнів</title>
 <style>
 :root{--panel:#262626;--panel2:#303030;--text:#f1f1f1;--light:#e7d3ad;--dark:#a9825c}
 *{box-sizing:border-box}
@@ -268,7 +268,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
 </head>
 <body>
 <div class="app">
- <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.10.5 · FAIRY · 48 РІВНІВ</span></div>
+ <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.11.0 · 2 РУШІЇ · 48 РІВНІВ</span></div>
  <div id="engineIndicator" class="engineIndicator loading"><span class="dot"></span><span id="engineIndicatorText">Fairy-Stockfish: перевірка…</span></div>
  <div class="layout">
   <main>
@@ -514,8 +514,8 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
  </div>
  <div class="settingsBody">
   <p id="settingsHelp">Зміна розміру дошки, правил, сторони або режиму починає нову партію.</p>
-  <p class="strengthHint">Fairy-Stockfish · GPLv3 · <a style="color:inherit" href="./fairy-stockfish-source-v5.10.0.zip" download>Вихідний код рушія</a></p>
-<div class="settingsFields desktopSettings"><div class="settingsField"><label for="timeControl">Час на партію</label><select id="timeControl"><option value="0" selected>Без обмеження</option><option value="1">1 хв кожному</option><option value="2">2 хв кожному</option><option value="3">3 хв кожному</option><option value="4">4 хв кожному</option><option value="5">5 хв кожному</option><option value="6">6 хв кожному</option></select><p class="strengthHint">Без додавання часу. Вибір діятиме після «Нова партія». Годинники запускаються кнопкою «Почати гру» й не зупиняються в налаштуваннях або при згортанні.</p></div>
+  <p class="strengthHint">Fairy-Stockfish · GPLv3 · <a style="color:inherit" href="./fairy-stockfish-source-v5.10.0.zip" download>Вихідний код рушія</a> · Reckless · AGPLv3 · <a style="color:inherit" href="./reckless-source-v1.0.zip" download>Вихідний код Reckless</a></p>
+<div class="settingsFields desktopSettings"><div class="settingsField"><label for="engineSelect">Програма суперника</label><select id="engineSelect"><option value="stockfish" selected>Fairy-Stockfish</option><option value="reckless">Reckless · адаптований</option></select><p id="engineHint" class="strengthHint">Рушій обирається для нової партії. Усі 48 рівнів доступні для обох рушіїв.</p></div><div class="settingsField"><label for="timeControl">Час на партію</label><select id="timeControl"><option value="0" selected>Без обмеження</option><option value="1">1 хв кожному</option><option value="2">2 хв кожному</option><option value="3">3 хв кожному</option><option value="4">4 хв кожному</option><option value="5">5 хв кожному</option><option value="6">6 хв кожному</option></select><p class="strengthHint">Без додавання часу. Вибір діятиме після «Нова партія». Годинники запускаються кнопкою «Почати гру» й не зупиняються в налаштуваннях або при згортанні.</p></div>
 <div class="settingsField"><label for="boardSize">Шахівниця</label>
 <select id="boardSize"><option value="8" selected>10×8 · Капабланка</option><option value="10">10×10 · Авторський варіант</option></select>
 <p class="strengthHint">На 10×10 кожна сторона має два ходи пішака на три клітини: з 2-го на 5-й ряд або з 9-го на 6-й. Шлях має бути вільним. Звичайний старт на одну чи дві клітини не витрачає цей запас.</p></div>
@@ -556,7 +556,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
       <p class="strengthHint">Масштаб — двома пальцями або коліщатком миші. Поворот і нахил — перетягуванням дошки. Для ходу коротко торкніться фігури, потім клітини.</p>
       <button id="resetCamera3d" type="button">Початковий ракурс</button>
     </div>
-</div><div class="settingsFields mobileSettings"><div class="settingsField"><label for="mobileTimeControl">Час на партію</label><select id="mobileTimeControl"><option value="0" selected>Без обмеження</option><option value="1">1 хв кожному</option><option value="2">2 хв кожному</option><option value="3">3 хв кожному</option><option value="4">4 хв кожному</option><option value="5">5 хв кожному</option><option value="6">6 хв кожному</option></select><p class="strengthHint">Без додавання часу. Вибір діятиме після «Нова партія». Годинники запускаються кнопкою «Почати гру» й не зупиняються в налаштуваннях або при згортанні.</p></div>
+</div><div class="settingsFields mobileSettings"><div class="settingsField"><label for="mobileEngineSelect">Програма суперника</label><select id="mobileEngineSelect"><option value="stockfish" selected>Fairy-Stockfish</option><option value="reckless">Reckless · адаптований</option></select><p id="mobileEngineHint" class="strengthHint">Рушій обирається для нової партії. Усі 48 рівнів доступні для обох рушіїв.</p></div><div class="settingsField"><label for="mobileTimeControl">Час на партію</label><select id="mobileTimeControl"><option value="0" selected>Без обмеження</option><option value="1">1 хв кожному</option><option value="2">2 хв кожному</option><option value="3">3 хв кожному</option><option value="4">4 хв кожному</option><option value="5">5 хв кожному</option><option value="6">6 хв кожному</option></select><p class="strengthHint">Без додавання часу. Вибір діятиме після «Нова партія». Годинники запускаються кнопкою «Почати гру» й не зупиняються в налаштуваннях або при згортанні.</p></div>
 <div class="settingsField"><label for="mobileBoardSize">Шахівниця</label>
 <select id="mobileBoardSize"><option value="8" selected>10×8 · Капабланка</option><option value="10">10×10 · Авторський варіант</option></select>
 <p class="strengthHint">На 10×10 кожна сторона має два ходи пішака на три клітини: з 2-го на 5-й ряд або з 9-го на 6-й. Шлях має бути вільним. Звичайний старт на одну чи дві клітини не витрачає цей запас.</p></div>
@@ -709,7 +709,7 @@ const FAIRY_10_CONFIG="[capablanca10_kingknight:capablanca10]\nking = k:KN\n[cap
 let fairy10Ready=false;
 function fairyVariant(){return (ROWS===10?FAIRY_10_VARIANTS:FAIRY_VARIANTS)[variant()]||null}
 function currentAiRequest(request){
- return request.generation===gameGeneration && request.variant===variant() &&
+ return (!request.engine||request.engine===activeEngine) && request.generation===gameGeneration && request.variant===variant() &&
   !gameOver && modeEl.value==="ai" && turn===request.side && turn===aiSide() &&
   request.fen===stateToFen();
 }
@@ -905,11 +905,11 @@ function repetitionCount(){
 }
 function gameReport(){
  settleClock();
- return {format:"capablanca-game-v1",appVersion:"5.10.5",engineBuild:"5.10.0",board:`10x${ROWS}`,
-  variant:variant(),engineVariant:fairyVariant(),result:gameResult,endReason:endKind,clock:{...clock},
+ return {format:"capablanca-game-v1",appVersion:"5.11.0",engine:activeEngine,engineBuild:activeEngine==="reckless"?"Reckless Capablanca 1.0":"5.10.0",board:`10x${ROWS}`,
+  variant:variant(),engineVariant:activeEngine==="reckless"?`capablanca-10x${ROWS}-${variant()}`:fairyVariant(),result:gameResult,endReason:endKind,clock:{...clock},
   strength:strengthProfile(),initialFen:history[0]?.beforeFen||stateToFen(),currentFen:stateToFen(),
   uciPosition:enginePositionCommand(),moves:history.map(h=>({...h})),
-  engineStatus:{ready:fairyReady,lastSearchOk:fairyLastSearchOk,reason:fairyFailureReason}};
+  engineStatus:activeEngine==="reckless"?{ready:recklessReady,lastSearchOk:recklessLastSearchOk,reason:recklessFailureReason}:{ready:fairyReady,lastSearchOk:fairyLastSearchOk,reason:fairyFailureReason}};
 }
 function saveGameReport(){
  const blob=new Blob([JSON.stringify(gameReport(),null,2)],{type:"application/json;charset=utf-8"});
@@ -970,7 +970,8 @@ function fairyBestMove(request){
    const mv=uciToMove(line.split(/\s+/)[1]);
    fairyLastSearchOk=!!mv;
    fairyFailureReason=mv?"":"рушій повернув хід, який не відповідає правилам позиції";
-   request.analysis=fairySearchInfo;
+   request.engineName=mv?"Fairy-Stockfish":null;request.analysis=fairySearchInfo;
+   request.actualLimits={skill:request.strength.skill,depth:request.strength.searchDepth,timeMs:moveTime};
    updateStrengthStatus(); return mv;
   }catch(e){
    console.warn("Fairy search failed; local fallback",e);
@@ -987,6 +988,50 @@ function fairyBestMove(request){
  fairyOperation=result.then(()=>{},()=>{});
  return result;
 }
+
+// Real Reckless WASM worker; generation checks reject stale answers.
+const engineSelect=document.getElementById('engineSelect'),mobileEngineSelect=document.getElementById('mobileEngineSelect');
+let activeEngine='stockfish';
+let recklessWorker=null,recklessReady=false,recklessBusy=false,recklessLastSearchOk=null,recklessFailureReason='';
+let recklessInitPromise=null,recklessSerial=0;const recklessPending=new Map();
+function selectedEngine(){return engineSelect.value==='reckless'?'reckless':'stockfish'}
+function discardReckless(reason='Розрахунок скасовано'){
+ const old=recklessWorker;recklessWorker=null;recklessReady=false;recklessBusy=false;recklessInitPromise=null;
+ for(const q of recklessPending.values()){clearTimeout(q.timer);q.reject(new Error(reason))}recklessPending.clear();if(old)old.terminate();
+}
+function recklessCall(type,payload={},timeout=15000){return new Promise((resolve,reject)=>{
+ if(!recklessWorker){reject(new Error('Reckless не завантажений'));return}
+ const id=++recklessSerial,timer=setTimeout(()=>{recklessPending.delete(id);reject(new Error('Reckless: вичерпано час очікування'))},timeout);
+ recklessPending.set(id,{resolve,reject,timer});try{recklessWorker.postMessage({id,type,...payload})}catch(e){clearTimeout(timer);recklessPending.delete(id);reject(e)}
+})}
+function initReckless(){
+ if(recklessReady)return Promise.resolve(true);if(recklessInitPromise)return recklessInitPromise;let worker;
+ const attempt=(async()=>{try{
+  if(typeof Worker!=='function')throw new Error('Браузер не підтримує Web Worker');
+  worker=recklessWorker=new Worker('./reckless.worker.js?v=5.11.0');
+  worker.onmessage=event=>{if(recklessWorker!==worker)return;const d=event.data||{},q=recklessPending.get(d.id);if(!q)return;recklessPending.delete(d.id);clearTimeout(q.timer);if(d.error)q.reject(new Error(d.error));else q.resolve(d)};
+  worker.onerror=event=>{if(recklessWorker!==worker)return;recklessFailureReason=event.message||'Не вдалося завантажити файли Reckless';recklessLastSearchOk=false;discardReckless(recklessFailureReason);updateStrengthStatus()};
+  const reply=await recklessCall('init',{},30000);if(recklessWorker!==worker)return false;
+  if(reply.engine!=='reckless-capablanca-1.0')throw new Error('Невідповідна версія Reckless');
+  recklessReady=true;recklessFailureReason='';recklessLastSearchOk=null;updateStrengthStatus();return true;
+ }catch(e){if(!worker||recklessWorker===worker){recklessFailureReason=String(e.message||e);recklessLastSearchOk=false;discardReckless(recklessFailureReason);updateStrengthStatus()}return false}})();
+ recklessInitPromise=attempt;attempt.finally(()=>{if(recklessInitPromise===attempt)recklessInitPromise=null});return attempt;
+}
+async function recklessBestMove(request){
+ if(!currentAiRequest(request)||!await initReckless()||!currentAiRequest(request))return null;
+ if(settleClock()||!currentAiRequest(request))return null;recklessBusy=true;
+ try{
+  const moveTime=clock.running?Math.max(1,Math.min(request.strength.moveTime,Math.floor(clock[turn]/20),Math.floor(clock[turn]-30))):request.strength.moveTime;
+  const reply=await recklessCall('search',{position:request.position,fen:request.fen,variant:request.variant,level:request.strength.level,depth:request.strength.searchDepth||0,time:moveTime,generation:request.generation},moveTime+8000);
+  if(!currentAiRequest(request))return null;const mv=uciToMove(reply.move);if(!mv)throw new Error('Reckless повернув хід, який не відповідає правилам позиції');
+  recklessLastSearchOk=true;recklessFailureReason='';request.engineName='Reckless';request.analysis=reply.analysis;request.actualLimits={depth:request.strength.searchDepth,timeMs:moveTime,level:request.strength.level};updateStrengthStatus();return mv;
+ }catch(e){if(currentAiRequest(request)){recklessFailureReason=String(e.message||e);recklessLastSearchOk=false;discardReckless(recklessFailureReason);updateStrengthStatus()}return null}
+ finally{if(aiTurnRequest===request)recklessBusy=false}
+}
+function initSelectedEngine(){return activeEngine==='reckless'?initReckless():initFairy()}
+function engineSelectionHint(){const pending=selectedEngine()!==activeEngine;for(const id of ['engineHint','mobileEngineHint']){const el=document.getElementById(id);if(el)el.textContent=(pending?'Натисніть «Нова партія», щоб змінити рушій. ':'Рушій обирається для нової партії. ')+(selectedEngine()==='reckless'?'Reckless адаптований до наших правил. Однакові номери рівнів у різних рушіїв можуть відрізнятися за силою.':'Усі 48 рівнів доступні для обох рушіїв.')}}
+engineSelect.addEventListener('change',()=>{mobileEngineSelect.value=engineSelect.value;engineSelectionHint()});
+mobileEngineSelect.addEventListener('change',()=>{engineSelect.value=mobileEngineSelect.value;engineSelectionHint()});
 
 function variant(){return variantEl.value}
 function humanSide(){return humanSideEl.value}
@@ -1709,7 +1754,11 @@ function updateStrengthStatus(){
  for(const id of ["strengthHint","mobileStrengthHint"]){
   const el=document.getElementById(id); if(el)el.textContent=hint;
  }
- if(!fairyVariant()){
+ if(activeEngine==="reckless"){
+  if(recklessLastSearchOk===false){label=`Reckless: НЕ АКТИВНИЙ · резервний ШІ ${levelLabel} · ${recklessFailureReason||"рушій недоступний"}`;cls="fallback"}
+  else if(recklessReady){label=`Reckless: ${recklessLastSearchOk?"АКТИВНИЙ":"ГОТОВИЙ"}${ruleLabel} · ${levelLabel}`;cls="active"}
+  else{label="Reckless: завантаження й перевірка…";cls="loading"}
+ }else if(!fairyVariant()){
   label=`Вбудований ШІ: ${levelLabel}`; cls="local";
  }else if(fairyReady&&ROWS===10&&!fairy10Ready){
   label=`Вбудований ШІ: потрібні три нові файли рушія v5.10.0 для 10×10`;cls="fallback";
@@ -1761,7 +1810,7 @@ function rebuildBoard(){
   sq.addEventListener("click",onSquare);boardEl.appendChild(sq);
  }
  document.getElementById("boardTitle").textContent=`Шахи Капабланки 10×${ROWS}`;
- document.title=`Шахи Капабланки 10×${ROWS} · v5.10.5`;
+ document.title=`Шахи Капабланки 10×${ROWS} · v5.11.0`;
  // Classic refers to the original rules only on 10x8.
  for(const select of [variantEl,mobileVariant]){
   const option=[...select.options].find(o=>o.value==="classic");
@@ -1770,6 +1819,9 @@ function rebuildBoard(){
 }
 function reset(){
  cancelCameraGesture();
+ activeEngine=selectedEngine();
+ if(recklessBusy)discardReckless();
+ recklessLastSearchOk=null;recklessFailureReason="";engineSelectionHint();
  ROWS=boardSizeEl.value==="10"?10:8;
  boardSizeEl.value=mobileBoardSize.value=String(ROWS);
  rebuildBoard();
@@ -1786,7 +1838,7 @@ function reset(){
  applyViewMode();
  render(); renderMoves();
  updateStrengthStatus();
- if(modeEl.value==="ai"&&fairyVariant())void initFairy();
+ if(modeEl.value==="ai"&&fairyVariant())void initSelectedEngine();
  if(modeEl.value==="ai"&&aiSide()==="r"&&!clock.minutes){
   const generation=gameGeneration;
   setTimeout(()=>{if(generation===gameGeneration&&!gameOver&&turn===aiSide())aiTurn()},250);
@@ -2036,9 +2088,9 @@ function commitMove(m){
  const noteBase=notation(m,mover,captured);
  pendingMoveRecord={color:turn,uci:moveToUci(m),beforeFen:stateToFen(),beforeKey:repetitionKey(),
   engine:aiTurnRequest&&currentAiRequest(aiTurnRequest)?{
-   name:fairyLastSearchOk?"Fairy-Stockfish":"local",level:aiTurnRequest.strength.level,
-   limits:{skill:aiTurnRequest.strength.skill,depth:aiTurnRequest.strength.searchDepth,timeMs:aiTurnRequest.strength.moveTime},
-   analysis:fairyLastSearchOk?aiTurnRequest.analysis||null:null}:null};
+   name:aiTurnRequest.engineName||"local",level:aiTurnRequest.strength.level,
+   limits:aiTurnRequest.actualLimits||{depth:aiTurnRequest.strength.depth,timeMs:aiTurnRequest.strength.time},
+   analysis:aiTurnRequest.engineName?aiTurnRequest.analysis||null:null}:null};
  const res=applyMove(state,m,epSquare,false);
  state=res.s; epSquare=res.ep; lastMove=m; selected=null; legal=[];
  const arrived=state[m.tr][m.tc];
@@ -2088,6 +2140,7 @@ function checkGameEnd(){
 }
 
 function showResult(kind){
+ if(recklessBusy)discardReckless();
  endKind=kind;clock.running=false;if(clockTask!==null)clearTimeout(clockTask);clockTask=null;
  if(fairyBusy)fairySend("stop");
 
@@ -2388,12 +2441,12 @@ async function aiTurn(){
  if(gameOver||modeEl.value!=="ai"||turn!==aiSide())return;
  if(aiTurnRequest&&currentAiRequest(aiTurnRequest))return;
  if(checkGameEnd())return;
- const request={generation:gameGeneration,rows:ROWS,variant:variant(),side:turn,fen:stateToFen(),position:enginePositionCommand(),strength:strengthProfile()};
+ const request={engine:activeEngine,generation:gameGeneration,rows:ROWS,variant:variant(),side:turn,fen:stateToFen(),position:enginePositionCommand(),strength:strengthProfile()};
  aiTurnRequest=request;
  try{
   if(fairyVariant()){
    updateStrengthStatus();
-   const m=await fairyBestMove(request);
+   const m=await (request.engine==="reckless"?recklessBestMove(request):fairyBestMove(request));
    if(!currentAiRequest(request))return;
    if(m){updateStrengthStatus();commitMove(m);return}
   }
@@ -2963,6 +3016,7 @@ document.querySelectorAll("[data-promo]").forEach(btn=>btn.addEventListener("cli
 
 // Deterministic first-load initialization: no color-toggle workaround required.
 populateStrengthSelects();
+mobileEngineSelect.value=engineSelect.value;
 mobileVariant.value=variantEl.value;
 mobileStrength.value=strengthEl.value;
 mobileHumanSide.value=humanSideEl.value;
