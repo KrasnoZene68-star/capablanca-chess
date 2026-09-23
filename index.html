@@ -251,6 +251,13 @@ body.settings-open{overflow:hidden}
 .mobileSettings{display:none}
 @media(max-width:900px){.desktopSettings{display:none}.mobileSettings{display:grid}}
 @media(min-width:901px) and (min-height:600px){.app{max-width:min(960px,calc((100svh - 240px)*1.25 + 20px))}}
+#duelControls[hidden]{display:none}
+#duelControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px}
+#duelControls button{min-height:44px;padding:9px 13px;font-size:14px;font-weight:650}
+#duelStart{background:#3f652d;border-color:#608947}
+#duelPause{background:#3b3630}
+#duelSummary{width:100%;font-size:13px;color:#c5dfb3;line-height:1.4}
+body:not(.duel-mode) .duelOnly,body.duel-mode .soloOnly{display:none}
 /* Approved 2D palette. WebGL uses its existing materials and N1/N2 meshes. */
 body:not(.real3d){background:#242321}
 body:not(.real3d) .settingsField3d{display:none}
@@ -268,13 +275,18 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
 </head>
 <body>
 <div class="app">
- <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.11.0 · 2 РУШІЇ · 48 РІВНІВ</span></div>
+ <div class="brand"><span id="boardTitle">Шахи Капабланки 10×8</span> <span class="badge">v5.12.0 · МАТЧ РУШІЇВ · 48 РІВНІВ</span></div>
  <div id="engineIndicator" class="engineIndicator loading"><span class="dot"></span><span id="engineIndicatorText">Fairy-Stockfish: перевірка…</span></div>
  <div class="layout">
   <main>
    <div class="gameActions">
     <button id="settingsOpen" type="button" aria-haspopup="dialog" aria-controls="settingsDialog" aria-expanded="false">НАЛАШТУВАННЯ</button>
     <button id="newGame" type="button">Нова партія</button>
+   </div>
+   <div id="duelControls" hidden role="group" aria-label="Керування матчем рушіїв">
+    <button id="duelStart" type="button">Почати матч</button>
+    <button id="duelPause" type="button" disabled>Пауза</button>
+    <span id="duelSummary" role="status"></span>
    </div>
    <div class="boardShell">
     <div id="clockRow" class="clockRow" style="display:none">
@@ -515,7 +527,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
  <div class="settingsBody">
   <p id="settingsHelp">Зміна розміру дошки, правил, сторони або режиму починає нову партію.</p>
   <p class="strengthHint">Fairy-Stockfish · GPLv3 · <a style="color:inherit" href="./fairy-stockfish-source-v5.10.0.zip" download>Вихідний код рушія</a> · Reckless · AGPLv3 · <a style="color:inherit" href="./reckless-source-v1.0.zip" download>Вихідний код Reckless</a></p>
-<div class="settingsFields desktopSettings"><div class="settingsField"><label for="engineSelect">Програма суперника</label><select id="engineSelect"><option value="stockfish" selected>Fairy-Stockfish</option><option value="reckless">Reckless · адаптований</option></select><p id="engineHint" class="strengthHint">Рушій обирається для нової партії. Усі 48 рівнів доступні для обох рушіїв.</p></div><div class="settingsField"><label for="timeControl">Час на партію</label><select id="timeControl"><option value="0" selected>Без обмеження</option><option value="1">1 хв кожному</option><option value="2">2 хв кожному</option><option value="3">3 хв кожному</option><option value="4">4 хв кожному</option><option value="5">5 хв кожному</option><option value="6">6 хв кожному</option></select><p class="strengthHint">Без додавання часу. Вибір діятиме після «Нова партія». Годинники запускаються кнопкою «Почати гру» й не зупиняються в налаштуваннях або при згортанні.</p></div>
+<div class="settingsFields desktopSettings"><div class="settingsField soloOnly"><label for="engineSelect">Програма суперника</label><select id="engineSelect"><option value="stockfish" selected>Fairy-Stockfish</option><option value="reckless">Reckless · адаптований</option></select><p id="engineHint" class="strengthHint">Рушій обирається для нової партії. Усі 48 рівнів доступні для обох рушіїв.</p></div><div class="settingsField"><label for="timeControl">Час на партію</label><select id="timeControl"><option value="0" selected>Без обмеження</option><option value="1">1 хв кожному</option><option value="2">2 хв кожному</option><option value="3">3 хв кожному</option><option value="4">4 хв кожному</option><option value="5">5 хв кожному</option><option value="6">6 хв кожному</option></select><p class="strengthHint">Без додавання часу. Вибір діятиме після «Нова партія». Годинники запускаються кнопкою «Почати гру» й не зупиняються в налаштуваннях або при згортанні.</p></div>
 <div class="settingsField"><label for="boardSize">Шахівниця</label>
 <select id="boardSize"><option value="8" selected>10×8 · Капабланка</option><option value="10">10×10 · Авторський варіант</option></select>
 <p class="strengthHint">На 10×10 кожна сторона має два ходи пішака на три клітини: з 2-го на 5-й ряд або з 9-го на 6-й. Шлях має бути вільним. Звичайний старт на одну чи дві клітини не витрачає цей запас.</p></div>
@@ -527,7 +539,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
      <option value="both">Обидва ваші правила</option>
     </select>
 </div>
-<div class="settingsField"><label for="strength">Складність</label>
+<div class="settingsField soloOnly"><label for="strength">Складність</label>
 <select id="strength" class="strengthSelect" aria-label="Складність комп’ютера" aria-describedby="strengthHint"><option value="1">1 · Перше знайомство · I · 267</option><option value="2">2 · Перше знайомство · II · 333</option><option value="3">3 · Перше знайомство · III · 400</option><option value="4">4 · Новачок · I · 467</option><option value="5">5 · Новачок · II · 533</option><option value="6">6 · Новачок · III · 600</option><option value="7">7 · Початківець · I · 667</option><option value="8">8 · Початківець · II · 733</option><option value="9">9 · Початківець · III · 800</option><option value="10">10 · Учень · I · 867</option><option value="11">11 · Учень · II · 933</option><option value="12">12 · Учень · III · 1000</option><option value="13">13 · Аматор · I · 1033</option><option value="14">14 · Аматор · II · 1067</option><option value="15">15 · Аматор · III · 1100</option><option value="16">16 · Практик · I · 1133</option><option value="17">17 · Практик · II · 1167</option><option value="18">18 · Практик · III · 1200</option><option value="19">19 · Досвідчений · I · 1233</option><option value="20">20 · Досвідчений · II · 1267</option><option value="21">21 · Досвідчений · III · 1300</option><option value="22">22 · Клубний гравець · I · 1333</option><option value="23">23 · Клубний гравець · II · 1367</option><option value="24">24 · Клубний гравець · III · 1400</option><option value="25">25 · Тактик · I · 1433</option><option value="26">26 · Тактик · II · 1467</option><option value="27">27 · Тактик · III · 1500</option><option value="28">28 · Стратег · I · 1533</option><option value="29">29 · Стратег · II · 1567</option><option value="30" selected>30 · Стратег · III · 1600</option><option value="31">31 · Сильний аматор · I · 1667</option><option value="32">32 · Сильний аматор · II · 1733</option><option value="33">33 · Сильний аматор · III · 1800</option><option value="34">34 · Експерт · I · 1867</option><option value="35">35 · Експерт · II · 1933</option><option value="36">36 · Експерт · III · 2000</option><option value="37">37 · Кандидат · I · 2067</option><option value="38">38 · Кандидат · II · 2133</option><option value="39">39 · Кандидат · III · 2200</option><option value="40">40 · Майстер · I · 2267</option><option value="41">41 · Майстер · II · 2333</option><option value="42">42 · Майстер · III · 2400</option><option value="43">43 · Гросмейстер · I · 2467</option><option value="44">44 · Гросмейстер · II · 2533</option><option value="45">45 · Гросмейстер · III · 2600</option><option value="46">46 · Максимум · I · 2667</option><option value="47">47 · Максимум · II · 2733</option><option value="48">48 · Максимум · III · 2800</option></select>
 <div id="strengthHint" class="strengthHint">Бали — умовний рейтинг нашої гри, не Elo.</div>
 </div>
@@ -535,9 +547,18 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
 <select id="mode">
      <option value="ai">Ви (червоні) проти комп’ютера</option>
      <option value="two">Двоє гравців</option>
+     <option value="engines">Fairy-Stockfish проти Reckless</option>
     </select>
 </div>
-<div class="settingsField"><label for="humanSide">Ваша сторона</label>
+<div class="settingsField duelOnly"><label for="duelRedEngine">Червоні грають за</label>
+<select id="duelRedEngine"><option value="stockfish" selected>Fairy-Stockfish</option><option value="reckless">Reckless · адаптований</option></select>
+<p class="strengthHint">Зеленими автоматично грає інший рушій. Зміна кольорів починає нову партію.</p></div>
+<div class="settingsField duelOnly"><label for="duelRedLevel">Рівень червоних</label>
+<select id="duelRedLevel" class="strengthSelect" aria-label="Рівень червоних"></select></div>
+<div class="settingsField duelOnly"><label for="duelGreenLevel">Рівень зелених</label>
+<select id="duelGreenLevel" class="strengthSelect" aria-label="Рівень зелених"></select>
+<p class="strengthHint">Рівень кожної сторони можна змінювати під час матчу: зміна діє з наступного її ходу. Однакові номери рівнів не означають однакової сили рушіїв.</p></div>
+<div class="settingsField soloOnly"><label for="humanSide">Ваша сторона</label>
 <select id="humanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
 </div>
 <div class="settingsField"><label for="viewMode">Вигляд дошки</label>
@@ -556,7 +577,7 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
       <p class="strengthHint">Масштаб — двома пальцями або коліщатком миші. Поворот і нахил — перетягуванням дошки. Для ходу коротко торкніться фігури, потім клітини.</p>
       <button id="resetCamera3d" type="button">Початковий ракурс</button>
     </div>
-</div><div class="settingsFields mobileSettings"><div class="settingsField"><label for="mobileEngineSelect">Програма суперника</label><select id="mobileEngineSelect"><option value="stockfish" selected>Fairy-Stockfish</option><option value="reckless">Reckless · адаптований</option></select><p id="mobileEngineHint" class="strengthHint">Рушій обирається для нової партії. Усі 48 рівнів доступні для обох рушіїв.</p></div><div class="settingsField"><label for="mobileTimeControl">Час на партію</label><select id="mobileTimeControl"><option value="0" selected>Без обмеження</option><option value="1">1 хв кожному</option><option value="2">2 хв кожному</option><option value="3">3 хв кожному</option><option value="4">4 хв кожному</option><option value="5">5 хв кожному</option><option value="6">6 хв кожному</option></select><p class="strengthHint">Без додавання часу. Вибір діятиме після «Нова партія». Годинники запускаються кнопкою «Почати гру» й не зупиняються в налаштуваннях або при згортанні.</p></div>
+</div><div class="settingsFields mobileSettings"><div class="settingsField soloOnly"><label for="mobileEngineSelect">Програма суперника</label><select id="mobileEngineSelect"><option value="stockfish" selected>Fairy-Stockfish</option><option value="reckless">Reckless · адаптований</option></select><p id="mobileEngineHint" class="strengthHint">Рушій обирається для нової партії. Усі 48 рівнів доступні для обох рушіїв.</p></div><div class="settingsField"><label for="mobileTimeControl">Час на партію</label><select id="mobileTimeControl"><option value="0" selected>Без обмеження</option><option value="1">1 хв кожному</option><option value="2">2 хв кожному</option><option value="3">3 хв кожному</option><option value="4">4 хв кожному</option><option value="5">5 хв кожному</option><option value="6">6 хв кожному</option></select><p class="strengthHint">Без додавання часу. Вибір діятиме після «Нова партія». Годинники запускаються кнопкою «Почати гру» й не зупиняються в налаштуваннях або при згортанні.</p></div>
 <div class="settingsField"><label for="mobileBoardSize">Шахівниця</label>
 <select id="mobileBoardSize"><option value="8" selected>10×8 · Капабланка</option><option value="10">10×10 · Авторський варіант</option></select>
 <p class="strengthHint">На 10×10 кожна сторона має два ходи пішака на три клітини: з 2-го на 5-й ряд або з 9-го на 6-й. Шлях має бути вільним. Звичайний старт на одну чи дві клітини не витрачає цей запас.</p></div>
@@ -568,14 +589,22 @@ body:not(.real3d) .gameInfo{background:#2e2d29}
      <option value="both">Обидва ваші правила</option>
     </select>
 </div>
-<div class="settingsField"><label for="mobileStrength">Складність</label>
+<div class="settingsField soloOnly"><label for="mobileStrength">Складність</label>
 <select id="mobileStrength" class="strengthSelect" aria-label="Складність комп’ютера" aria-describedby="mobileStrengthHint"><option value="1">1 · Перше знайомство · I · 267</option><option value="2">2 · Перше знайомство · II · 333</option><option value="3">3 · Перше знайомство · III · 400</option><option value="4">4 · Новачок · I · 467</option><option value="5">5 · Новачок · II · 533</option><option value="6">6 · Новачок · III · 600</option><option value="7">7 · Початківець · I · 667</option><option value="8">8 · Початківець · II · 733</option><option value="9">9 · Початківець · III · 800</option><option value="10">10 · Учень · I · 867</option><option value="11">11 · Учень · II · 933</option><option value="12">12 · Учень · III · 1000</option><option value="13">13 · Аматор · I · 1033</option><option value="14">14 · Аматор · II · 1067</option><option value="15">15 · Аматор · III · 1100</option><option value="16">16 · Практик · I · 1133</option><option value="17">17 · Практик · II · 1167</option><option value="18">18 · Практик · III · 1200</option><option value="19">19 · Досвідчений · I · 1233</option><option value="20">20 · Досвідчений · II · 1267</option><option value="21">21 · Досвідчений · III · 1300</option><option value="22">22 · Клубний гравець · I · 1333</option><option value="23">23 · Клубний гравець · II · 1367</option><option value="24">24 · Клубний гравець · III · 1400</option><option value="25">25 · Тактик · I · 1433</option><option value="26">26 · Тактик · II · 1467</option><option value="27">27 · Тактик · III · 1500</option><option value="28">28 · Стратег · I · 1533</option><option value="29">29 · Стратег · II · 1567</option><option value="30" selected>30 · Стратег · III · 1600</option><option value="31">31 · Сильний аматор · I · 1667</option><option value="32">32 · Сильний аматор · II · 1733</option><option value="33">33 · Сильний аматор · III · 1800</option><option value="34">34 · Експерт · I · 1867</option><option value="35">35 · Експерт · II · 1933</option><option value="36">36 · Експерт · III · 2000</option><option value="37">37 · Кандидат · I · 2067</option><option value="38">38 · Кандидат · II · 2133</option><option value="39">39 · Кандидат · III · 2200</option><option value="40">40 · Майстер · I · 2267</option><option value="41">41 · Майстер · II · 2333</option><option value="42">42 · Майстер · III · 2400</option><option value="43">43 · Гросмейстер · I · 2467</option><option value="44">44 · Гросмейстер · II · 2533</option><option value="45">45 · Гросмейстер · III · 2600</option><option value="46">46 · Максимум · I · 2667</option><option value="47">47 · Максимум · II · 2733</option><option value="48">48 · Максимум · III · 2800</option></select>
 <div id="mobileStrengthHint" class="strengthHint">Бали — умовний рейтинг нашої гри, не Elo.</div>
 </div>
 <div class="settingsField"><label for="mobileMode">Режим гри</label>
-<select id="mobileMode"><option value="ai">Ви (червоні) проти комп’ютера</option><option value="two">Двоє гравців</option></select>
+<select id="mobileMode"><option value="ai">Ви (червоні) проти комп’ютера</option><option value="two">Двоє гравців</option><option value="engines">Fairy-Stockfish проти Reckless</option></select>
 </div>
-<div class="settingsField"><label for="mobileHumanSide">Ваша сторона</label>
+<div class="settingsField duelOnly"><label for="mobileDuelRedEngine">Червоні грають за</label>
+<select id="mobileDuelRedEngine"><option value="stockfish" selected>Fairy-Stockfish</option><option value="reckless">Reckless · адаптований</option></select>
+<p class="strengthHint">Зеленими автоматично грає інший рушій. Зміна кольорів починає нову партію.</p></div>
+<div class="settingsField duelOnly"><label for="mobileDuelRedLevel">Рівень червоних</label>
+<select id="mobileDuelRedLevel" class="strengthSelect" aria-label="Рівень червоних"></select></div>
+<div class="settingsField duelOnly"><label for="mobileDuelGreenLevel">Рівень зелених</label>
+<select id="mobileDuelGreenLevel" class="strengthSelect" aria-label="Рівень зелених"></select>
+<p class="strengthHint">Рівень кожної сторони можна змінювати під час матчу. Однакові номери рівнів не означають однакової сили рушіїв.</p></div>
+<div class="settingsField soloOnly"><label for="mobileHumanSide">Ваша сторона</label>
 <select id="mobileHumanSide"><option value="r" selected>Ви: червоні</option><option value="g">Ви: зелені</option></select>
 </div>
 <div class="settingsField"><label for="mobileViewMode">Вигляд дошки</label>
@@ -651,7 +680,7 @@ function paintClock(){
   e.textContent=(side==="r"?"Червоні · ":"Зелені · ")+Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0");
   e.classList.toggle("active",clock.running&&turn===side);e.classList.toggle("low",clock[side]<=10000);
  }
- document.getElementById("clockStart").hidden=!clock.minutes||clock.started||gameOver;
+ document.getElementById("clockStart").hidden=!clock.minutes||clock.started||gameOver||modeEl.value==="engines";
 }
 function settleClock(){
  if(!clock.running||gameOver)return false;
@@ -709,8 +738,9 @@ const FAIRY_10_CONFIG="[capablanca10_kingknight:capablanca10]\nking = k:KN\n[cap
 let fairy10Ready=false;
 function fairyVariant(){return (ROWS===10?FAIRY_10_VARIANTS:FAIRY_VARIANTS)[variant()]||null}
 function currentAiRequest(request){
- return (!request.engine||request.engine===activeEngine) && request.generation===gameGeneration && request.variant===variant() &&
-  !gameOver && modeEl.value==="ai" && turn===request.side && turn===aiSide() &&
+ return request.engine===engineForSide(request.side) && request.generation===gameGeneration && request.variant===variant() &&
+  !gameOver && turn===request.side &&
+  (modeEl.value==='ai'&&turn===aiSide() || modeEl.value==='engines'&&duelRunning&&request.duelEpoch===duelEpoch) &&
   request.fen===stateToFen();
 }
 
@@ -905,11 +935,15 @@ function repetitionCount(){
 }
 function gameReport(){
  settleClock();
- return {format:"capablanca-game-v1",appVersion:"5.11.0",engine:activeEngine,engineBuild:activeEngine==="reckless"?"Reckless Capablanca 1.0":"5.10.0",board:`10x${ROWS}`,
-  variant:variant(),engineVariant:activeEngine==="reckless"?`capablanca-10x${ROWS}-${variant()}`:fairyVariant(),result:gameResult,endReason:endKind,clock:{...clock},
+ return {format:"capablanca-game-v1",appVersion:"5.12.0",engine:modeEl.value==='engines'?'duel':activeEngine,
+  engineBuild:modeEl.value==='engines'?'Fairy-Stockfish 5.10.0 + Reckless Capablanca 1.0':activeEngine==='reckless'?'Reckless Capablanca 1.0':'5.10.0',board:`10x${ROWS}`,
+  variant:variant(),engineVariant:modeEl.value==='engines'?{r:duelEngines.r==='stockfish'?fairyVariant():`capablanca-10x${ROWS}-${variant()}`,g:duelEngines.g==='stockfish'?fairyVariant():`capablanca-10x${ROWS}-${variant()}`}:
+   activeEngine==='reckless'?`capablanca-10x${ROWS}-${variant()}`:fairyVariant(),result:gameResult,endReason:endKind,clock:{...clock},
+  duel:modeEl.value==='engines'?{r:{engine:duelEngines.r,level:duelStrengthForSide('r').level},g:{engine:duelEngines.g,level:duelStrengthForSide('g').level},running:duelRunning,started:duelStarted,pausedReason:duelPauseReason}:null,
   strength:strengthProfile(),initialFen:history[0]?.beforeFen||stateToFen(),currentFen:stateToFen(),
   uciPosition:enginePositionCommand(),moves:history.map(h=>({...h})),
-  engineStatus:activeEngine==="reckless"?{ready:recklessReady,lastSearchOk:recklessLastSearchOk,reason:recklessFailureReason}:{ready:fairyReady,lastSearchOk:fairyLastSearchOk,reason:fairyFailureReason}};
+  engineStatus:modeEl.value==='engines'?{stockfish:{ready:fairyReady,lastSearchOk:fairyLastSearchOk,reason:fairyFailureReason},reckless:{ready:recklessReady,lastSearchOk:recklessLastSearchOk,reason:recklessFailureReason}}:
+   activeEngine==='reckless'?{ready:recklessReady,lastSearchOk:recklessLastSearchOk,reason:recklessFailureReason}:{ready:fairyReady,lastSearchOk:fairyLastSearchOk,reason:fairyFailureReason}};
 }
 function saveGameReport(){
  const blob=new Blob([JSON.stringify(gameReport(),null,2)],{type:"application/json;charset=utf-8"});
@@ -1033,12 +1067,88 @@ function engineSelectionHint(){const pending=selectedEngine()!==activeEngine;for
 engineSelect.addEventListener('change',()=>{mobileEngineSelect.value=engineSelect.value;engineSelectionHint()});
 mobileEngineSelect.addEventListener('change',()=>{engineSelect.value=mobileEngineSelect.value;engineSelectionHint()});
 
+// v5.12.0: one board, two engines and a shared game record.
+const duelRedEngineEl=document.getElementById('duelRedEngine');
+const mobileDuelRedEngine=document.getElementById('mobileDuelRedEngine');
+const duelRedLevel=document.getElementById('duelRedLevel');
+const mobileDuelRedLevel=document.getElementById('mobileDuelRedLevel');
+const duelGreenLevel=document.getElementById('duelGreenLevel');
+const mobileDuelGreenLevel=document.getElementById('mobileDuelGreenLevel');
+const duelStartButton=document.getElementById('duelStart');
+const duelPauseButton=document.getElementById('duelPause');
+const duelControls=document.getElementById('duelControls');
+const duelSummary=document.getElementById('duelSummary');
+let duelEngines={r:'stockfish',g:'reckless'},duelRunning=false,duelStarted=false,duelEpoch=0,duelPauseReason='';
+
+function engineForSide(side){return modeEl.value==='engines'?duelEngines[side]:activeEngine}
+function engineLabel(engine){return engine==='stockfish'?'Fairy-Stockfish':'Reckless'}
+function duelStrengthForSide(side){
+ const n=Number((side==='r'?duelRedLevel:duelGreenLevel).value);
+ return STRENGTH_LEVELS[Number.isInteger(n)?Math.max(1,Math.min(48,n))-1:29];
+}
+function updateDuelControls(){
+ const match=modeEl.value==='engines';
+ document.body.classList.toggle('duel-mode',match);
+ duelControls.hidden=!match;
+ if(!match)return;
+ duelStartButton.disabled=duelRunning||gameOver;
+ duelStartButton.textContent=duelStarted?'Продовжити матч':'Почати матч';
+ duelPauseButton.disabled=!duelRunning||gameOver;
+ const red=engineLabel(duelEngines.r),green=engineLabel(duelEngines.g);
+ duelSummary.textContent=gameOver?`Матч завершено · ${gameResult}`:
+  duelPauseReason?`Матч призупинено · ${duelPauseReason}`:
+  duelRunning?`Грають: червоні — ${red}, зелені — ${green}`:
+  duelStarted?`Пауза · червоні — ${red}, зелені — ${green}`:
+  `Червоні — ${red} · зелені — ${green} · очікування запуску`;
+ paintClock();
+}
+function pauseDuel(reason=''){
+ if(modeEl.value!=='engines'||!duelRunning)return;
+ if(clock.running){
+  if(settleClock())return;
+  clock.running=false;
+  if(clockTask!==null)clearTimeout(clockTask);
+  clockTask=null;clock.stamp=clockNow();
+ }
+ duelRunning=false;duelEpoch++;duelPauseReason=reason;aiTurnRequest=null;
+ if(fairyBusy)discardFairy();
+ if(recklessBusy)discardReckless();
+ updateDuelControls();updateStrengthStatus();render();
+}
+function startDuel(){
+ if(modeEl.value!=='engines'||duelRunning||gameOver)return;
+ if(clock.minutes){
+  if(!clock.started)startClock();
+  else if(!clock.running){clock.running=true;clock.stamp=clockNow();clockTick()}
+ }
+ duelRunning=true;duelStarted=true;duelPauseReason='';
+ updateDuelControls();updateStrengthStatus();render();
+ void aiTurn();
+}
+function syncDuelEngine(value){
+ duelRedEngineEl.value=mobileDuelRedEngine.value=value;
+ if(modeEl.value==='engines')reset();
+}
+function syncDuelLevel(side,value){
+ const clamped=String(Math.max(1,Math.min(48,Number(value)||30)));
+ for(const el of side==='r'?[duelRedLevel,mobileDuelRedLevel]:[duelGreenLevel,mobileDuelGreenLevel])el.value=clamped;
+ updateDuelControls();updateStrengthStatus();
+}
+duelRedEngineEl.addEventListener('change',()=>syncDuelEngine(duelRedEngineEl.value));
+mobileDuelRedEngine.addEventListener('change',()=>syncDuelEngine(mobileDuelRedEngine.value));
+duelRedLevel.addEventListener('change',()=>syncDuelLevel('r',duelRedLevel.value));
+mobileDuelRedLevel.addEventListener('change',()=>syncDuelLevel('r',mobileDuelRedLevel.value));
+duelGreenLevel.addEventListener('change',()=>syncDuelLevel('g',duelGreenLevel.value));
+mobileDuelGreenLevel.addEventListener('change',()=>syncDuelLevel('g',mobileDuelGreenLevel.value));
+duelStartButton.addEventListener('click',startDuel);
+duelPauseButton.addEventListener('click',()=>pauseDuel());
+
 function variant(){return variantEl.value}
 function humanSide(){return humanSideEl.value}
 function aiSide(){return humanSide()==="r"?"g":"r"}
 function pieceSet(){return pieceSetEl.value}
 
-function isHumanTurn(){return modeEl.value!=="ai"||turn===humanSide()}
+function isHumanTurn(){return modeEl.value==='two'||modeEl.value==='ai'&&turn===humanSide()}
 
 function applyViewMode(){
  cancelCameraGesture();
@@ -1050,7 +1160,7 @@ function applyViewMode(){
 }
 
 function applyBoardOrientation(){
- const flipped=humanSide()==="g";
+ const flipped=modeEl.value!=="engines"&&humanSide()==="g";
  boardEl.classList.toggle("flipped",flipped);
 
  const squares=[...boardEl.querySelectorAll(".sq")];
@@ -1716,7 +1826,7 @@ function strengthLevel(){
 function strengthProfile(){return STRENGTH_LEVELS[strengthLevel()-1]}
 function populateStrengthSelects(){
  const selected=String(strengthLevel());
- for(const select of [strengthEl,mobileStrength]){
+ for(const select of [strengthEl,mobileStrength,duelRedLevel,mobileDuelRedLevel,duelGreenLevel,mobileDuelGreenLevel]){
   select.innerHTML="";
   let group=null;
   for(const p of STRENGTH_LEVELS){
@@ -1729,7 +1839,7 @@ function populateStrengthSelects(){
    option.textContent=`${p.level} · ${p.name} · ${p.points}`;
    group.appendChild(option);
   }
-  select.value=selected;
+  select.value=[duelRedLevel,mobileDuelRedLevel,duelGreenLevel,mobileDuelGreenLevel].includes(select)?'30':selected;
  }
 }
 function selectStrength(value){
@@ -1777,6 +1887,13 @@ function updateStrengthStatus(){
  }else{
   label=`Fairy-Stockfish: перевірка…`; cls="loading";
  }
+ if(modeEl.value==='engines'){
+  const r=duelStrengthForSide('r'),g=duelStrengthForSide('g');
+  const trouble=!duelRunning&&(duelPauseReason||fairyLastSearchOk===false&&fairyFailureReason||recklessLastSearchOk===false&&recklessFailureReason);
+  const ready=fairyReady&&recklessReady;
+  label=`Матч: червоні ${engineLabel(duelEngines.r)} ${r.level}/48 · зелені ${engineLabel(duelEngines.g)} ${g.level}/48 · ${gameOver?'ЗАВЕРШЕНО':trouble?'ПАУЗА: '+trouble:duelRunning?'ГРАЮТЬ':duelStarted?'ПАУЗА':ready?'ГОТОВІ':'ЗАВАНТАЖЕННЯ'}`;
+  cls=trouble?'fallback':ready?'active':'loading';
+ }
  if(e)e.textContent=label;
  if(ind){ind.className=`engineIndicator ${cls}`;}
  if(txt)txt.textContent=label;
@@ -1820,6 +1937,8 @@ function rebuildBoard(){
 function reset(){
  cancelCameraGesture();
  activeEngine=selectedEngine();
+ duelEngines={r:duelRedEngineEl.value==='reckless'?'reckless':'stockfish',g:duelRedEngineEl.value==='reckless'?'stockfish':'reckless'};
+ duelRunning=false;duelStarted=false;duelEpoch++;duelPauseReason='';
  if(recklessBusy)discardReckless();
  recklessLastSearchOk=null;recklessFailureReason="";engineSelectionHint();
  ROWS=boardSizeEl.value==="10"?10:8;
@@ -1837,7 +1956,8 @@ function reset(){
  applyBoardOrientation();
  applyViewMode();
  render(); renderMoves();
- updateStrengthStatus();
+ updateDuelControls();updateStrengthStatus();
+ if(modeEl.value==='engines'){void initFairy();void initReckless()}
  if(modeEl.value==="ai"&&fairyVariant())void initSelectedEngine();
  if(modeEl.value==="ai"&&aiSide()==="r"&&!clock.minutes){
   const generation=gameGeneration;
@@ -2037,7 +2157,8 @@ function render(){
  if(gameOver)turnStatus.textContent=resultTitle.textContent+" · "+gameResult;
  const outcome=document.getElementById("boardOutcome");outcome.hidden=!gameOver;outcome.textContent=gameOver?resultTitle.textContent+" · "+gameResult:"";
  paintClock();
- subStatus.textContent=gameOver?`Партію завершено · ${gameResult}`:modeEl.value==="ai"?(turn===humanSide()?`Ваш хід (${humanSide()==="r"?"червоні":"зелені"})`:`Хід комп’ютера (${aiSide()==="r"?"червоні":"зелені"})`):"Двоє гравців";
+ subStatus.textContent=gameOver?`Партію завершено · ${gameResult}`:modeEl.value==='engines'?
+  duelRunning?`Хід ${engineLabel(engineForSide(turn))} (${who})`:'Матч на паузі':modeEl.value==="ai"?(turn===humanSide()?`Ваш хід (${humanSide()==="r"?"червоні":"зелені"})`:`Хід комп’ютера (${aiSide()==="r"?"червоні":"зелені"})`):"Двоє гравців";
  mobileState.textContent = gameOver ? resultText.textContent : legal.some(m=>m.special==="ep") ? "Взяття на проході: натисніть підсвічену клітину або ворожого пішака." : checked ? "Король під шахом" : "A = слон+кінь · C = тура+кінь";
  if(viewModeEl.value==="3d")renderGL();
 }
@@ -2068,7 +2189,7 @@ function renderMoves(){
 
 function chooseSquare(r,c){
  if(gameOver||pendingPromotion||!clockAllowsMove())return;
- if(modeEl.value==="ai"&&!isHumanTurn())return;
+ if(!isHumanTurn())return;
  if(selected){
   const m=legal.find(x=>x.tr===r&&x.tc===c)||legal.find(x=>x.special==="ep"&&x.tc===c&&epSquare?.capR===r);
   if(m){commitMove(m);return}
@@ -2095,7 +2216,7 @@ function commitMove(m){
  state=res.s; epSquare=res.ep; lastMove=m; selected=null; legal=[];
  const arrived=state[m.tr][m.tc];
  if(arrived.t==="P"&&(m.tr===0||m.tr===ROWS-1)){
-  if(modeEl.value==="ai"&&arrived.c===aiSide()){
+  if(modeEl.value==="engines"||modeEl.value==="ai"&&arrived.c===aiSide()){
    arrived.t=m.promote||"Q";
    pendingMoveRecord.uci=moveToUci(m,arrived.t);
    finishTurn(noteBase+"="+arrived.t);
@@ -2123,9 +2244,9 @@ function finishTurn(note){
  if(gameResult!=="*"&&resultTitle.textContent==="МАТ")record.note=record.note.replace(/\+$/,"#");
  render();renderMoves();
  if(ended)return;
- if(modeEl.value==="ai"&&turn===aiSide()&&!gameOver){
-  const generation=gameGeneration;
-  setTimeout(()=>{if(generation===gameGeneration)aiTurn()},120);
+ if(!gameOver&&(modeEl.value==='ai'&&turn===aiSide()||modeEl.value==='engines'&&duelRunning)){
+  const generation=gameGeneration,epoch=duelEpoch;
+  setTimeout(()=>{if(generation===gameGeneration&&(modeEl.value!=='engines'||duelRunning&&duelEpoch===epoch))void aiTurn()},200);
  }
 }
 
@@ -2140,6 +2261,7 @@ function checkGameEnd(){
 }
 
 function showResult(kind){
+ if(modeEl.value==='engines'){duelRunning=false;duelEpoch++;aiTurnRequest=null;duelPauseReason=''}
  if(recklessBusy)discardReckless();
  endKind=kind;clock.running=false;if(clockTask!==null)clearTimeout(clockTask);clockTask=null;
  if(fairyBusy)fairySend("stop");
@@ -2166,6 +2288,7 @@ function showResult(kind){
    repetition:"Позиція з тими самими правами на хід повторилася тричі.",
    fiftyMoves:"50 ходів кожної сторони без взяття й ходу пішака."})[kind]+" ½-½";
  }
+ if(modeEl.value==='engines'){updateDuelControls();updateStrengthStatus()}
 }
 
 function cheapMobility(s,color,ep=null){
@@ -2438,10 +2561,11 @@ function localAiTurn(p=strengthProfile()){
 }
 async function aiTurn(){
  if(!clockAllowsMove())return;
- if(gameOver||modeEl.value!=="ai"||turn!==aiSide())return;
+ if(gameOver||modeEl.value==='two'||modeEl.value==='ai'&&turn!==aiSide()||modeEl.value==='engines'&&!duelRunning)return;
  if(aiTurnRequest&&currentAiRequest(aiTurnRequest))return;
  if(checkGameEnd())return;
- const request={engine:activeEngine,generation:gameGeneration,rows:ROWS,variant:variant(),side:turn,fen:stateToFen(),position:enginePositionCommand(),strength:strengthProfile()};
+ const request={engine:engineForSide(turn),duelEpoch,generation:gameGeneration,rows:ROWS,variant:variant(),side:turn,
+  fen:stateToFen(),position:enginePositionCommand(),strength:modeEl.value==='engines'?duelStrengthForSide(turn):strengthProfile()};
  aiTurnRequest=request;
  try{
   if(fairyVariant()){
@@ -2450,7 +2574,10 @@ async function aiTurn(){
    if(!currentAiRequest(request))return;
    if(m){updateStrengthStatus();commitMove(m);return}
   }
-  if(currentAiRequest(request))localAiTurn(request.strength);
+  if(currentAiRequest(request)){
+   if(modeEl.value==='engines')pauseDuel(`${engineLabel(request.engine)} недоступний; перевірте файли рушія`);
+   else localAiTurn(request.strength);
+  }
  }finally{
   if(aiTurnRequest===request){aiTurnRequest=null;updateStrengthStatus();}
  }
@@ -3016,6 +3143,7 @@ document.querySelectorAll("[data-promo]").forEach(btn=>btn.addEventListener("cli
 
 // Deterministic first-load initialization: no color-toggle workaround required.
 populateStrengthSelects();
+mobileDuelRedEngine.value=duelRedEngineEl.value;
 mobileEngineSelect.value=engineSelect.value;
 mobileVariant.value=variantEl.value;
 mobileStrength.value=strengthEl.value;
