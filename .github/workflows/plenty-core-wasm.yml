@@ -1,0 +1,61 @@
+name: PlentyChess original core WASM
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - variant: baseline
+            positional: '0'
+            evaluator: material-center-v1
+          - variant: candidate
+            positional: '1'
+            evaluator: handcrafted-tapered-v1
+    env:
+      POSITIONAL_EVAL: ${{ matrix.positional }}
+      EXPECTED_EVALUATOR: ${{ matrix.evaluator }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Extract matching source
+        run: |
+          sha256sum -c plentychess-ci-source.sha256
+          unzip -q plentychess-ci-source.zip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: emscripten-core/setup-emsdk@v15
+        with:
+          version: '2.0.26'
+      - name: Install browser test dependency
+        run: |
+          npm install --no-save --package-lock=false playwright@1.51.1
+          npx playwright install --with-deps chromium
+      - name: Native regression tests
+        working-directory: plenty-engine
+        run: |
+          bash verification/test_core_eval.sh
+          bash verification/test_core_search.sh
+      - name: Compile original core to WASM
+        working-directory: plenty-engine
+        run: bash verification/build_core_web.sh wasm
+      - name: Test actual WASM and browser worker
+        working-directory: plenty-engine
+        run: |
+          node verification/test_core_wasm.cjs
+          node verification/test_core_browser.cjs
+      - name: Package verified engine and source
+        env:
+          BUILD_VARIANT: ${{ matrix.variant }}
+        run: python3 plenty-engine/verification/package_core_release.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: plenty-core-${{ matrix.variant }}-${{ github.run_number }}
+          path: release/
+          if-no-files-found: error
+          retention-days: 90
