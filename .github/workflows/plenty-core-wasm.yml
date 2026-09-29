@@ -26,12 +26,12 @@ jobs:
         run: |
           sha256sum -c plentychess-ci-source.sha256
           unzip -q plentychess-ci-source.zip
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
       - uses: emscripten-core/setup-emsdk@v15
         with:
           version: '2.0.26'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
       - name: Install browser test dependency
         run: |
           npm install --no-save --package-lock=false playwright@1.51.1
