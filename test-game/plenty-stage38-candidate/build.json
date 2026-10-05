@@ -1,0 +1,26 @@
+{
+  "stage": 38,
+  "variant": "candidate",
+  "evaluator": "handcrafted-tapered-v1",
+  "emscripten": "2.0.26",
+  "origin": "local build; no GitHub Actions run",
+  "repository_commit": null,
+  "run_id": null,
+  "source_archive": "../../ci_input/plentychess-ci-source.zip",
+  "source_archive_sha256": "2ffdf05218f299048411110244746e244607ad76efea19cf4e51f1d8a292184c",
+  "evaluation_override": null,
+  "wasm_sha256": "ea074b01f1d71665d2bca8272e0e73481b3d10dde261bbf734424ca930a47d58",
+  "checks": [
+    "Node.js actual WASM: 26 core searches",
+    "Actual release worker/client in Node.js worker_threads: 65 results, errors, cancellation and recreation",
+    "49,040 positions: exact equality of nine evaluation components vs native oracle",
+    "95 depth-3 positions: exact old/new/native search results; 333 legal PV plies"
+  ],
+  "browser_verification": "blocked_before_page_load",
+  "not_verified": [
+    "Chromium browser integration",
+    "iPhone Safari",
+    "live website integration",
+    "playing strength / Elo"
+  ]
+}

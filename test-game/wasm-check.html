@@ -1,0 +1,27 @@
+<!doctype html><html lang="uk"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PlentyChess · перевірка WASM</title>
+<style>body{max-width:780px;margin:32px auto;padding:0 20px;font:18px system-ui;background:#f5f4ef;color:#182c29}button,a{padding:12px;display:inline-block}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:14px monospace}</style>
+<h1>Перевірка PlentyChess stage38</h1><p>Окремий тест завантаження WASM і Web Worker у вашому браузері. Сторінку потрібно відкрити через HTTP, а не як файл.</p>
+<button id="run">Запустити перевірку</button><button id="save" disabled>Зберегти результат</button><a href="index.html">Відкрити тестову гру</a><pre id="out">Ще не запускалося.</pre>
+<script src="plenty-stage38-candidate/plenty-core.client.js"></script><script>
+let result;
+const out=document.getElementById('out'),run=document.getElementById('run'),save=document.getElementById('save');
+run.onclick=async()=>{
+ run.disabled=true;save.disabled=true;result={date:new Date().toISOString(),userAgent:navigator.userAgent,status:'running',checks:[]};
+ const client=new PlentyCoreClient('./plenty-stage38-candidate/plenty-core.worker.js');
+ const check=(v,m)=>{if(!v)throw new Error(m)};
+ try{
+  for(const height of [8,10])for(let flags=0;flags<4;flags++){
+   out.textContent=`Перевірка: 10×${height}, правило ${flags+1}…`;
+   const fen='rnabqkbcnr/pppppppppp/'+'10/'.repeat(height-4)+'PPPPPPPPPP/RNABQKBCNR w KQkq - 0 1'+(height===10?' t2,2':'');
+   const q={height,flags,fen,depth:2,milliseconds:10000};
+   const r=await client.search(q);check(r.evaluator==='handcrafted-tapered-v1','Оцінювач');check(r.fen===fen,'Позиція');check(r.completed&&r.depth===2&&!r.terminal&&r.move!=='0000','Пошук');
+   let rejected=false;try{await client.search({...q,moves:'a1a10'})}catch(e){rejected=true}check(rejected,'Відхилення незаконного ходу');
+   const recovery=await client.search({...q,depth:1});check(recovery.completed,'Відновлення');
+   result.checks.push({height,flags,move:r.move,depth:r.depth,invalidRejected:rejected,recovered:true});
+  }
+  result.status='passed';
+ }catch(e){result.status='failed';result.error=String(e.message||e)}
+ finally{client.cancel();out.textContent=JSON.stringify(result,null,2);run.disabled=false;save.disabled=false}
+};
+save.onclick=()=>{const u=URL.createObjectURL(new Blob([JSON.stringify(result,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='plenty-browser-result.json';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)};
+</script></html>

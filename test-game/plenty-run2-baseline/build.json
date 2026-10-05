@@ -1,0 +1,19 @@
+{
+  "variant": "baseline",
+  "evaluator": "material-center-v1",
+  "repository_commit": "ce5b46bf93f07c7dea6793e9698df75ced332cad",
+  "run_id": "36526648614",
+  "emscripten": "2.0.26",
+  "checks": [
+    "native evaluation",
+    "native original search",
+    "Node actual WASM",
+    "Chromium actual worker"
+  ],
+  "not_verified": [
+    "iPhone Safari",
+    "full website integration",
+    "playing strength",
+    "dead-position material rules"
+  ]
+}

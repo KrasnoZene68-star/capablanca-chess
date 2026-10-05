@@ -1,0 +1,11 @@
+{
+  "stage": 39,
+  "purpose": "isolated test integration; not published",
+  "evaluator": "handcrafted-tapered-v1",
+  "worker": "plenty-stage38-candidate/plenty-core.worker.js",
+  "wasmBuildStage": 38,
+  "repository_commit": null,
+  "run_id": null,
+  "browserStatus": "not executed",
+  "siteModified": false
+}
