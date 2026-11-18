@@ -5,8 +5,8 @@ function canonical(fen){const a=fen.trim().split(/\s+/);if(a[3]!=='-')a[3]=(a[3]
 async function initialize(){
  if(engine)return;if(initializing)return initializing;
  initializing=(async()=>{
-  importScripts('./reckless.js?v=5.11.0');await wasm_bindgen({module_or_path:'./reckless.wasm?v=5.11.0'});engine=new wasm_bindgen.Engine();
-  const probes=[['9k/10/10/10/4K5/10/10/10 w - - 0 1',1,16],['r8k/10/10/10/10/2b7/10/KN8 w - - 0 1',2,1],['rr7k/10/10/10/10/2b7/10/KN8 w - - 0 1',2,0],['r8k/10/10/10/3n6/2b7/10/KN8 w - - 0 1',3,1],['9k/10/10/10/10/10/10/10/P9/5K4 w - - 0 1 t2,2',0,8]];
+  importScripts('./reckless.js?v=5.11.0');await wasm_bindgen({module_or_path:'./reckless.wasm?v=pawns10-1'});engine=new wasm_bindgen.Engine();
+  const probes=[['9k/10/10/10/4K5/10/10/10 w - - 0 1',1,16],['r8k/10/10/10/10/2b7/10/KN8 w - - 0 1',2,1],['rr7k/10/10/10/10/2b7/10/KN8 w - - 0 1',2,0],['r8k/10/10/10/3n6/2b7/10/KN8 w - - 0 1',3,1],['9k/10/10/10/10/10/10/10/P9/5K4 w - - 0 1 t2,2',0,8],['9k/10/10/10/10/10/10/10/P9/5K4 w - - 0 1 t10,10',0,8]];
   for(const[fen,rule,n]of probes){engine.set_position(fen,rule,'');if(engine.perft(1)!==n)throw new Error('Reckless не пройшов перевірку правил')}
  })();
  try{await initializing}catch(e){if(engine){engine.free();engine=null}initializing=null;throw e}
